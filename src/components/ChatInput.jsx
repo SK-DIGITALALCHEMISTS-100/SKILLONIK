@@ -4,7 +4,6 @@ import { Send, X, Image as ImageIcon } from 'lucide-react';
 export default function ChatInput({ onSendMessage, isThinking }) {
   const [input, setInput] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
   const textareaRef = useRef(null);
 
   const handleSubmit = (e) => {
@@ -50,11 +49,7 @@ export default function ChatInput({ onSendMessage, isThinking }) {
 
         <form
           onSubmit={handleSubmit}
-          className={`glass-panel rounded-3xl px-4 py-3 flex items-center gap-3 shadow-[0_8px_32px_rgba(15,23,42,0.12)] bg-white/80 transition-all border ${
-            isRecording
-              ? 'ring-2 ring-red-500 border-red-400'
-              : 'border-white/80 focus-within:ring-2 focus-within:ring-blue-500/40'
-          }`}
+          className="glass-panel rounded-3xl px-4 py-3 flex items-center gap-3 shadow-[0_8px_32px_rgba(15,23,42,0.12)] bg-white/80 transition-all border border-white/80 focus-within:ring-2 focus-within:ring-blue-500/40"
         >
           {/* Textarea Input */}
           <textarea
@@ -66,7 +61,7 @@ export default function ChatInput({ onSendMessage, isThinking }) {
               e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
             }}
             onKeyDown={handleKeyDown}
-            placeholder={isRecording ? 'Listening to voice prompt...' : 'Ask anything about code, career, roadmaps or placements...'}
+            placeholder="Ask anything about code, career, roadmaps or placements..."
             rows={1}
             disabled={isThinking}
             className="flex-1 bg-transparent border-none outline-none resize-none py-3 px-3 text-slate-800 placeholder:text-slate-400 text-sm no-scrollbar focus:ring-0"

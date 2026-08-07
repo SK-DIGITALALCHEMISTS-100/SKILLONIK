@@ -6,7 +6,7 @@ export default function RoadmapsView({ onSelectTopicPrompt }) {
   const [activeRoadmap, setActiveRoadmap] = useState(MOCK_ROADMAPS[0]);
 
   return (
-    <div className="flex-1 w-full flex flex-col relative px-4 md:px-8 py-6 h-full overflow-y-auto no-scrollbar pb-36">
+    <div className="flex-1 w-full flex flex-col relative px-4 md:px-8 py-6 h-full overflow-y-auto custom-scrollbar pb-36">
       <div className="max-w-[1000px] mx-auto w-full flex flex-col gap-6">
 
         {/* View Title */}
