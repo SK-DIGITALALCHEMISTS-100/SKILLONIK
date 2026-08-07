@@ -6,7 +6,7 @@ const PROBLEMS = [
     id: 1,
     color: "#2563eb",
     icon: Compass,
-    title: "Which tech stack to learn?",
+    title: "Which tech stack to learns?",
     problem: "Engineering students are overwhelmed by countless frameworks and don't know which tech path matches hiring demand.",
     solution: "Personalized roadmaps with weekly milestones mapped directly to real hiring trends."
   },
