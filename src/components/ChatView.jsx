@@ -33,7 +33,7 @@ export default function ChatView({ messages, onSelectSuggestion, isThinking }) {
   };
 
   return (
-    <div className="flex-1 w-full h-full overflow-y-auto no-scrollbar">
+    <div className="flex-1 w-full h-full overflow-y-auto custom-scrollbar">
       {/* Hero / Empty State Centered */}
       {messages.length === 0 ? (
         <div className="w-full min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center px-4 md:px-8 pb-28">

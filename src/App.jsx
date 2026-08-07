@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
+import Navbar from "./components/Navbar.jsx";
+import Hero from "./components/Hero.jsx";
+import ProblemSection from "./components/ProblemSection.jsx";
+import SimplePage from "./components/SimplePage.jsx";
+import Footer from "./components/Footer.jsx";
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-
 import ChatView from './components/ChatView';
 import ChatInput from './components/ChatInput';
 import RoadmapsView from './components/RoadmapsView';
 import ProjectsView from './components/ProjectsView';
-
 import SavedDrawer from './components/SavedDrawer';
 
 export default function App() {
+  const [page, setPage] = useState("Home");
   const [currentView, setCurrentView] = useState('chat');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSavedOpen, setIsSavedOpen] = useState(false);
-
   const [messages, setMessages] = useState([]);
   const [isThinking, setIsThinking] = useState(false);
-
   const [savedChats, setSavedChats] = useState([
     { id: 'sc-1', title: 'MERN MongoDB Timeout Debugging', date: 'Aug 06, 2026', messageCount: 2 },
     { id: 'sc-2', title: 'FastAPI Async SQLModel Setup', date: 'Aug 04, 2026', messageCount: 5 },
@@ -37,6 +38,7 @@ export default function App() {
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
     setCurrentView('chat');
+    setPage('AI Mentor');
 
     // Simulate AI Mentor reasoning & response generation
     setTimeout(() => {
@@ -47,7 +49,7 @@ export default function App() {
 
       const textLower = userMsg.text.toLowerCase();
 
-      if (textLower.includes('mern') || textLower.includes('react') || textLower.includes('node')) {
+      if (textLower.includes('mern') || textLower.includes('react') || textLower.includes('node') || textLower.includes('mongo')) {
         aiText = `To build or structure a high-performance Full Stack MERN application, you must follow the clean 3-tier architecture:
 1. **Frontend (React + Tailwind)**: Modular component structure with state management via Context API or Zustand.
 2. **Backend (Express + Node.js)**: RESTful controllers, middleware authentication, and centralized error handlers.
@@ -88,7 +90,7 @@ class Item(BaseModel):
 @app.post("/items/")
 async def create_item(item: Item):
     return {"message": f"Item '{item.name}' created!", "data": item}`;
-      } else if (textLower.includes('tcs') || textLower.includes('interview') || textLower.includes('question')) {
+      } else if (textLower.includes('tcs') || textLower.includes('interview') || textLower.includes('question') || textLower.includes('dsa') || textLower.includes('bfs')) {
         aiText = `Here is a key technical concept frequently evaluated in TCS Digital & Infosys placement rounds:
 
 ### Question: Explain Binary Tree Level Order Traversal (BFS)
@@ -140,13 +142,99 @@ async def create_item(item: Item):
     setCurrentView('chat');
   };
 
+  // Render Public Website Pages (Home, Roadmaps, Projects, Knowledge Base)
+  if (page !== "AI Mentor") {
+    return (
+      <div className="min-h-screen flex flex-col justify-between">
+        <Navbar 
+          page={page} 
+          setPage={setPage} 
+          onNavigate={(target) => {
+            if (target === "AI Mentor") {
+              setPage("AI Mentor");
+              setCurrentView("chat");
+            } else {
+              setPage(target);
+            }
+          }} 
+        />
+
+        <main className="flex-1">
+          {page === "Home" && (
+            <>
+              <Hero 
+                onExplore={() => setPage("Roadmaps")} 
+                onLaunchMentor={() => {
+                  setPage("AI Mentor");
+                  setCurrentView("chat");
+                }}
+                onBrowseProjects={() => setPage("Projects")}
+              />
+              <ProblemSection 
+                onSelectPrompt={(prompt) => {
+                  handleSendMessage({ text: prompt });
+                }} 
+              />
+            </>
+          )}
+
+          {page === "Roadmaps" && (
+            <SimplePage 
+              page="Roadmaps" 
+              onSelectPrompt={(prompt) => handleSendMessage({ text: prompt })}
+              onNavigateToMentor={() => {
+                setPage("AI Mentor");
+                setCurrentView("roadmaps");
+              }}
+            />
+          )}
+
+          {page === "Projects" && (
+            <div className="py-8 max-w-7xl mx-auto px-4">
+              <ProjectsView 
+                onSelectTopicPrompt={(prompt) => handleSendMessage({ text: prompt })}
+              />
+            </div>
+          )}
+
+          {page === "Knowledge Base" && (
+            <SimplePage 
+              page="Knowledge Base" 
+              onSelectPrompt={(prompt) => handleSendMessage({ text: prompt })}
+              onNavigateToMentor={() => {
+                setPage("AI Mentor");
+                setCurrentView("chat");
+              }}
+            />
+          )}
+        </main>
+
+        <Footer onNavigate={(target) => {
+          if (target === "AI Mentor") {
+            setPage("AI Mentor");
+            setCurrentView("chat");
+          } else {
+            setPage(target);
+          }
+        }} />
+      </div>
+    );
+  }
+
+  // Render Interactive AI Mentor Workspace Experience
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#E3F1FD] text-[#131b2e]">
       
       {/* Sidebar Navigation */}
       <Sidebar 
         currentView={currentView}
-        setCurrentView={setCurrentView}
+        setCurrentView={(view) => {
+          if (view === 'home-landing') {
+            setPage('Home');
+          } else {
+            setCurrentView(view);
+          }
+        }}
         onNewChat={handleNewChat}
         savedChatsCount={savedChats.length}
         isMobileOpen={isMobileOpen}
@@ -156,9 +244,7 @@ async def create_item(item: Item):
       {/* Top Header */}
       <Header 
         setIsMobileOpen={setIsMobileOpen}
-        onOpenNotifications={() => setIsNotificationsOpen(true)}
         onOpenSavedDrawer={() => setIsSavedOpen(true)}
-        onSelectSearchItem={(viewId) => setCurrentView(viewId)}
       />
 
       {/* Main Workspace Area */}
@@ -191,21 +277,27 @@ async def create_item(item: Item):
         )}
 
         {currentView === 'saved' && (
-          <div className="flex-1 p-8 overflow-y-auto">
-            <h2 className="font-display text-2xl font-bold mb-4">Saved Sessions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {savedChats.map((c) => (
-                <div key={c.id} className="p-4 glass-card rounded-2xl border border-white/80">
-                  <h3 className="font-bold text-base">{c.title}</h3>
-                  <p className="text-xs text-slate-500 mt-1">{c.date} • {c.messageCount} items</p>
-                  <button 
-                    onClick={() => setCurrentView('chat')}
-                    className="mt-3 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer"
-                  >
-                    Open Session
-                  </button>
-                </div>
-              ))}
+          <div className="flex-1 p-8 overflow-y-auto custom-scrollbar pb-32">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="font-display text-2xl font-bold mb-2 text-slate-900">Saved Mentorship Sessions</h2>
+              <p className="text-slate-500 text-xs mb-6">Access your previous AI mentor code reviews, roadmaps, and interview preparations.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {savedChats.map((c) => (
+                  <div key={c.id} className="p-5 glass-card rounded-2xl border border-white/80 flex flex-col justify-between">
+                    <div>
+                      <h3 className="font-bold text-base text-slate-900">{c.title}</h3>
+                      <p className="text-xs text-slate-500 mt-1 font-mono">{c.date} • {c.messageCount} messages</p>
+                    </div>
+                    <button 
+                      onClick={() => setCurrentView('chat')}
+                      className="mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer shadow-md shadow-blue-500/20 transition-all self-start"
+                    >
+                      Open Session
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
