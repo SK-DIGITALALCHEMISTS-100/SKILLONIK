@@ -14,7 +14,7 @@ export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
 
         {/* Main Headline */}
         <h1>
-          Supercharge Your <span className="accent">Engineering Career</span> with AI
+          Supercharge Your <span className="accent">Skillonik Career</span> with AI
         </h1>
 
         {/* Subtitle */}
