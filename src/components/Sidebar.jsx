@@ -13,15 +13,15 @@ export default function Sidebar({
   currentView, 
   setCurrentView, 
   onNewChat, 
-  savedChatsCount = 3,
+
   isMobileOpen,
   setIsMobileOpen
 }) {
   const navItems = [
-    { id: 'chat', label: 'AI Mentor Chat', icon: MessageSquare },
-    { id: 'roadmaps', label: 'Learning Roadmaps', icon: Map, badge: 'Hot' },
+    { id: 'chat', label: 'MCP MENTOR SUPPORT', icon: MessageSquare },
+    { id: 'roadmaps', label: 'Learning Roadmaps', icon: Map, },
     { id: 'projects', label: 'Project Blueprints', icon: Lightbulb },
-    { id: 'saved', label: 'Saved Sessions', icon: Bookmark, count: savedChatsCount },
+    { id: 'saved', label: 'Saved Sessions', icon: Bookmark, },
   ];
 
   const handleNavClick = (id) => {
@@ -54,7 +54,7 @@ export default function Sidebar({
             SKILLONIK
           </h1>
           <p className="font-mono text-[10px] text-blue-600 font-semibold tracking-wider uppercase">
-            Engineering AI Mentor
+             AI Mentor
           </p>
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function Sidebar({
           className="w-full flex items-center gap-2 py-2 px-3 rounded-xl bg-white/80 hover:bg-white text-slate-700 font-medium text-xs border border-white/90 shadow-sm transition-all cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
-          <span>Back to Landing Page</span>
+          <span>Home Page</span>
         </button>
 
         <button
@@ -131,7 +131,7 @@ export default function Sidebar({
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="text-xs font-bold text-slate-900 truncate">Balaji S</h4>
-            <p className="text-[10px] text-emerald-600 font-mono font-medium">Online • Engineering Pro</p>
+
           </div>
         </div>
       </div>

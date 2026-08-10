@@ -41,7 +41,7 @@ export default function ChatView({ messages, onSelectSuggestion, isThinking }) {
             
             {/* Logo Badge */}
             <div className="w-20 h-20 rounded-3xl bg-white/60 backdrop-blur-xl flex items-center justify-center mb-5 shadow-lg border border-white/80 transition-transform hover:scale-105">
-              <img src={logo} alt="SKILLONIK Logo" className="w-12 h-12 object-contain" />
+              <img src={logo} alt="SKILLONIK Logo" className="w-15 h-15 object-contain" />
             </div>
 
             {/* Main Greeting */}
