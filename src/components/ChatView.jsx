@@ -46,11 +46,11 @@ export default function ChatView({ messages, onSelectSuggestion, isThinking }) {
 
             {/* Main Greeting */}
             <h1 className="font-display text-4xl md:text-5xl font-extrabold text-slate-800 tracking-tight mb-3">
-              Hello, Balaji <span className="inline-block animate-bounce">👋</span>
+              Hello, There <span className="inline-block animate-bounce">👋</span>
             </h1>
             
             <p className="text-slate-600 text-base md:text-lg leading-relaxed max-w-lg mb-8">
-              Your AI mentor for engineering, careers, projects and placements. How can I help you accelerate today?
+              Your AI mentor for careers, projects and placements. How can I help you accelerate today?
             </p>
 
             {/* Quick Prompt Suggestions */}

@@ -14,13 +14,13 @@ export default function Footer({ onNavigate }) {
           <div>
             <div className="font-display font-bold text-base text-slate-900">SKILLONIK AI</div>
             <p className="text-xs text-slate-500">
-              Next-Gen Engineering Mentor, Curated Roadmaps &amp; Placement Preparation.
+              Next-Gen AI Mentor, Curated Roadmaps &amp; Placement Preparation.
             </p>
           </div>
         </div>
 
         {/* Quick Links */}
-        <ul className="footer-links flex flex-wrap justify-center gap-6">
+        {/* <ul className="footer-links flex flex-wrap justify-center gap-6">
           <li>
             <button onClick={() => onNavigate?.("Home")} className="footer-link cursor-pointer">
               Home
@@ -46,11 +46,11 @@ export default function Footer({ onNavigate }) {
               Knowledge Base
             </button>
           </li>
-        </ul>
+        </ul> */}
 
         {/* Copyright */}
         <div className="text-xs text-slate-400 font-mono text-center sm:text-right">
-          <span>&copy; {new Date().getFullYear()} SKILLONIK. Built for Engineers &amp; Students.</span>
+          <span>&copy; {new Date().getFullYear()} INTRANEURALS. Built for Engineers &amp; Students.</span>
         </div>
 
       </div>

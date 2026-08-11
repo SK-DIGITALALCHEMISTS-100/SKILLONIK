@@ -30,7 +30,7 @@ export default function Navbar({ page, onNavigate, setPage }) {
           <div>
             <span className="brand-name">SKILLONIK</span>
             <span className="hidden sm:block text-[9px] font-mono font-bold text-blue-600 uppercase tracking-wider">
-              Engineering AI Mentor
+              Skillonik AI Mentor
             </span>
           </div>
         </div>

@@ -54,7 +54,7 @@ export default function Sidebar({
             SKILLONIK
           </h1>
           <p className="font-mono text-[10px] text-blue-600 font-semibold tracking-wider uppercase">
-            Engineering AI Mentor
+             AI Mentor
           </p>
         </div>
       </div>
