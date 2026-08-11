@@ -1,27 +1,31 @@
 import React from 'react';
 import logo from "../assets/logo.png";
 import { 
-  MessageSquare,
+  MessageSquare, 
   PlusCircle, 
   Map, 
   Lightbulb, 
-  Bookmark,
-  ArrowLeft
+  Bookmark, 
+  ArrowLeft,
+  LogOut,
+  LogIn
 } from 'lucide-react';
 
 export default function Sidebar({ 
   currentView, 
   setCurrentView, 
   onNewChat, 
-
-  isMobileOpen,
-  setIsMobileOpen
+  isMobileOpen, 
+  setIsMobileOpen,
+  user,
+  onLogout,
+  onOpenLogin
 }) {
   const navItems = [
-    { id: 'chat', label: 'MCP MENTOR SUPPORT', icon: MessageSquare },
-    { id: 'roadmaps', label: 'Learning Roadmaps', icon: Map, },
+    { id: 'chat', label: 'AI Mentor Assistant', icon: MessageSquare },
+    { id: 'roadmaps', label: 'Learning Roadmaps', icon: Map },
     { id: 'projects', label: 'Project Blueprints', icon: Lightbulb },
-    { id: 'saved', label: 'Saved Sessions', icon: Bookmark, },
+    { id: 'saved', label: 'Saved Sessions', icon: Bookmark },
   ];
 
   const handleNavClick = (id) => {
@@ -38,7 +42,7 @@ export default function Sidebar({
     <aside 
       className={`
         fixed left-0 top-0 h-screen w-64 z-50 flex flex-col
-        bg-white/75 backdrop-blur-2xl 
+        bg-white/80 backdrop-blur-2xl 
         border-r border-white/80 shadow-lg
         transition-transform duration-300 ease-in-out
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -107,33 +111,44 @@ export default function Sidebar({
                   {item.badge}
                 </span>
               )}
-              {item.count !== undefined && (
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {item.count}
-                </span>
-              )}
             </button>
           );
         })}
       </div>
 
-      {/* Bottom Footer & Profile */}
+      {/* Bottom User Profile Section */}
       <div className="p-3 border-t border-white/40 space-y-2">
-        {/* User Profile Card */}
-        <div className="flex items-center gap-3 p-2.5 bg-white/60 rounded-xl border border-white/80 shadow-sm">
-          <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-              B
+        {user ? (
+          <div className="flex items-center justify-between p-2.5 bg-white/70 rounded-xl border border-white/90 shadow-sm">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                  {user.avatar || user.name.charAt(0)}
+                </div>
+                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white"></span>
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-slate-900 truncate leading-tight">{user.name}</h4>
+                <p className="text-[10px] text-slate-500 font-mono truncate">{user.role || 'Member'}</p>
+              </div>
             </div>
-            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white"></span>
+            <button
+              onClick={onLogout}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-bold text-slate-900 truncate">Balaji S</h4>
-
-          </div>
-        </div>
+        ) : (
+          <button
+            onClick={onOpenLogin}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200 shadow-xs transition-all cursor-pointer"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Sign In / Create Account</span>
+          </button>
+        )}
       </div>
     </aside>
   );

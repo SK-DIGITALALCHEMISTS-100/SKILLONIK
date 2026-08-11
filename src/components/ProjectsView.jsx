@@ -72,67 +72,7 @@ export default function ProjectsView({ onSelectTopicPrompt }) {
           ))}
         </div>
 
-        {/* Selected Project Full Spec */}
-        <div className="glass-panel rounded-3xl p-6 border border-white/80 shadow-xl space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Rocket className="w-5 h-5 text-blue-600" />
-                <span className="font-mono text-xs font-bold text-blue-600 uppercase tracking-wider">
-                  {selectedProject.tag} ARCHITECTURE SPEC
-                </span>
-              </div>
-              <h2 className="font-display text-2xl font-extrabold text-slate-900">
-                {selectedProject.title}
-              </h2>
-            </div>
-
-            <button
-              onClick={() => onSelectTopicPrompt(`Give me a detailed step-by-step guide and directory structure to build the project: ${selectedProject.title}`)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-2 shadow-md shadow-blue-500/20"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Ask AI to Build This Project</span>
-            </button>
-          </div>
-
-          {/* Key Features List */}
-          <div>
-            <h4 className="font-mono text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-              CORE SYSTEM FEATURES
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {selectedProject.features.map((feat, idx) => (
-                <div key={idx} className="p-3 bg-white/70 rounded-xl border border-white/80 text-xs font-semibold text-slate-800 flex items-center gap-2.5">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <span>{feat}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Starter Code Snippet */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-mono text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Terminal className="w-4 h-4 text-blue-500" />
-                STARTER CODE ARCHITECTURE
-              </h4>
-              <button
-                onClick={() => handleCopyCode(selectedProject.starterCode)}
-                className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied' : 'Copy Starter Code'}</span>
-              </button>
-            </div>
-            <div className="bg-[#0F172A] text-slate-200 rounded-2xl overflow-hidden border border-slate-700/80 shadow-lg">
-              <pre className="p-4 font-mono text-xs overflow-x-auto custom-scrollbar leading-relaxed">
-                <code>{selectedProject.starterCode}</code>
-              </pre>
-            </div>
-          </div>
-        </div>
+       
       </div>
     </div>
   );

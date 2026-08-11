@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Clock, Building2, Bug, CheckCircle2 } from 'lucide-react';
+import { Compass, Clock, Building2, CheckCircle2 } from 'lucide-react';
 
 const PROBLEMS = [
   {
@@ -25,21 +25,13 @@ const PROBLEMS = [
     title: "How do real IT companies work?",
     problem: "Students lack exposure to corporate engineering workflows, Agile sprints, code reviews, and CI/CD pipelines.",
     solution: "Production architectural blueprints and deep knowledge base articles on software lifecycles."
-  },
-  // {
-  //   id: 4,
-  //   color: "#10b981",
-  //   icon: Bug,
-  //   title: "Debugging & Interview blockades?",
-  //   problem: "Stuck on MongoDB timeouts, CORS headers, or tricky DSA questions during campus placements.",
-  //   solution: "Instant AI Mentor solutions with code snippets, root-cause analysis, and verified explanations."
-  // }
+  }
 ];
 
-export default function ProblemSection({ onSelectPrompt }) {
+export default function ProblemSection() {
   return (
     <section className="section">
-      <div className="container">
+      <div className="container flex flex-col items-center text-center">
         
         {/* Section Header */}
         <h2 className="section-title">
@@ -50,8 +42,8 @@ export default function ProblemSection({ onSelectPrompt }) {
           Real, widespread engineering challenges faced by students — solved with data-driven AI guidance.
         </p>
 
-        {/* 4-Card Responsive Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        {/* 3-Card Centered Responsive Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full mx-auto justify-center items-stretch text-left">
           {PROBLEMS.map((item) => {
             const Icon = item.icon;
             return (
@@ -59,7 +51,6 @@ export default function ProblemSection({ onSelectPrompt }) {
                 key={item.id}
                 className="card group cursor-pointer"
                 style={{ "--accent": item.color }}
-                onClick={() => onSelectPrompt && onSelectPrompt(`How does SKILLONIK help solve: "${item.title}"?`)}
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">

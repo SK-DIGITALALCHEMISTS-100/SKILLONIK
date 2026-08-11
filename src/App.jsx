@@ -11,6 +11,7 @@ import ChatInput from './components/ChatInput';
 import RoadmapsView from './components/RoadmapsView';
 import ProjectsView from './components/ProjectsView';
 import SavedDrawer from './components/SavedDrawer';
+import AuthPage from './components/AuthPage';
 
 export default function App() {
   const [page, setPage] = useState("Home");
@@ -19,11 +20,58 @@ export default function App() {
   const [isSavedOpen, setIsSavedOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isThinking, setIsThinking] = useState(false);
+
+  // Authenticated user state initialized from localStorage
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('skillonik_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [savedChats, setSavedChats] = useState([
     { id: 'sc-1', title: 'MERN MongoDB Timeout Debugging', date: 'Aug 06, 2026', messageCount: 2 },
     { id: 'sc-2', title: 'FastAPI Async SQLModel Setup', date: 'Aug 04, 2026', messageCount: 5 },
     { id: 'sc-3', title: 'TCS Digital Coding Solutions', date: 'Aug 01, 2026', messageCount: 4 }
   ]);
+
+  // Auth Handlers
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    try {
+      localStorage.setItem('skillonik_user', JSON.stringify(userData));
+    } catch (err) {
+      console.error('Error saving user to localStorage:', err);
+    }
+    // Smoothly transition to AI Mentor or previous view
+    setPage("AI Mentor");
+    setCurrentView("chat");
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    try {
+      localStorage.removeItem('skillonik_user');
+    } catch (err) {
+      console.error('Error removing user from localStorage:', err);
+    }
+  };
+
+  // Central Navigation Handler
+  const handleNavigate = (target) => {
+    if (target === "Login") {
+      setPage("Login");
+    } else if (target === "Signup") {
+      setPage("Signup");
+    } else if (target === "AI Mentor") {
+      setPage("AI Mentor");
+      setCurrentView("chat");
+    } else {
+      setPage(target);
+    }
+  };
 
   // Handle sending new prompt to AI Mentor engine
   const handleSendMessage = (msgObj) => {
@@ -142,6 +190,18 @@ async def create_item(item: Item):
     setCurrentView('chat');
   };
 
+  // Render Login & Sign Up Page
+  if (page === "Login" || page === "Signup") {
+    return (
+      <AuthPage
+        initialMode={page === "Signup" ? "signup" : "signin"}
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateHome={() => setPage("Home")}
+        onNavigate={handleNavigate}
+      />
+    );
+  }
+
   // Render Public Website Pages (Home, Roadmaps, Projects, Knowledge Base)
   if (page !== "AI Mentor") {
     return (
@@ -149,14 +209,9 @@ async def create_item(item: Item):
         <Navbar 
           page={page} 
           setPage={setPage} 
-          onNavigate={(target) => {
-            if (target === "AI Mentor") {
-              setPage("AI Mentor");
-              setCurrentView("chat");
-            } else {
-              setPage(target);
-            }
-          }} 
+          onNavigate={handleNavigate}
+          user={user}
+          onLogout={handleLogout}
         />
 
         <main className="flex-1">
@@ -209,14 +264,7 @@ async def create_item(item: Item):
           )}
         </main>
 
-        <Footer onNavigate={(target) => {
-          if (target === "AI Mentor") {
-            setPage("AI Mentor");
-            setCurrentView("chat");
-          } else {
-            setPage(target);
-          }
-        }} />
+        <Footer onNavigate={handleNavigate} />
       </div>
     );
   }
@@ -239,12 +287,23 @@ async def create_item(item: Item):
         savedChatsCount={savedChats.length}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
+        user={user}
+        onLogout={handleLogout}
+        onOpenLogin={() => {
+          setAuthMode("signin");
+          setPage("Login");
+        }}
       />
 
       {/* Top Header */}
       <Header 
         setIsMobileOpen={setIsMobileOpen}
         onOpenSavedDrawer={() => setIsSavedOpen(true)}
+        user={user}
+        onOpenLogin={() => {
+          setAuthMode("signin");
+          setPage("Login");
+        }}
       />
 
       {/* Main Workspace Area */}

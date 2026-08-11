@@ -99,13 +99,7 @@ export default function SimplePage({ page, onSelectPrompt, onNavigateToMentor })
             </p>
           </div>
 
-          <button
-            onClick={() => onNavigateToMentor ? onNavigateToMentor() : onSelectPrompt?.(`Explain ${data.heading} in detail`)}
-            className="btn-primary shrink-0 cursor-pointer self-start md:self-center"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Ask AI Mentor About {page}</span>
-          </button>
+         
         </div>
 
         {/* Structured Content Grid */}
@@ -141,16 +135,7 @@ export default function SimplePage({ page, onSelectPrompt, onNavigateToMentor })
                 )}
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  onClick={() => onSelectPrompt ? onSelectPrompt(item.prompt) : onNavigateToMentor?.()}
-                  className="text-xs font-bold text-blue-600 hover:text-indigo-600 transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Learn with AI Mentor</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
+              
             </div>
           ))}
         </div>

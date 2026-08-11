@@ -9,7 +9,7 @@ export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
         {/* Eyebrow Pill */}
         <div className="hero-pill">
           <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-          <span>v2.5 AI Engineering &amp; Placement Platform</span>
+          <span>Skillonik AI  &amp; Placement Platform</span>
         </div>
 
         {/* Main Headline */}
@@ -25,14 +25,14 @@ export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
 
         {/* Action Buttons */}
         <div className="hero-cta-group">
-          {/* <button 
+          <button 
             className="btn-explore" 
             onClick={onLaunchMentor || onExplore}
           >
             <Sparkles className="w-5 h-5" />
-            <span>Launch AI Mentor Free</span>
+            <span>Explore</span>
             <ArrowRight className="w-4 h-4 ml-1" />
-          </button> */}
+          </button>
 
           <button 
             className="btn-secondary"

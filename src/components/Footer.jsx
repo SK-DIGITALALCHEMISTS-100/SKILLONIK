@@ -19,38 +19,11 @@ export default function Footer({ onNavigate }) {
           </div>
         </div>
 
-        {/* Quick Links */}
-        {/* <ul className="footer-links flex flex-wrap justify-center gap-6">
-          <li>
-            <button onClick={() => onNavigate?.("Home")} className="footer-link cursor-pointer">
-              Home
-            </button>
-          </li>
-          <li>
-            <button onClick={() => onNavigate?.("AI Mentor")} className="footer-link cursor-pointer text-blue-600 font-semibold">
-              AI Mentor
-            </button>
-          </li>
-          <li>
-            <button onClick={() => onNavigate?.("Roadmaps")} className="footer-link cursor-pointer">
-              Roadmaps
-            </button>
-          </li>
-          <li>
-            <button onClick={() => onNavigate?.("Projects")} className="footer-link cursor-pointer">
-              Project Blueprints
-            </button>
-          </li>
-          <li>
-            <button onClick={() => onNavigate?.("Knowledge Base")} className="footer-link cursor-pointer">
-              Knowledge Base
-            </button>
-          </li>
-        </ul> */}
+       
 
         {/* Copyright */}
         <div className="text-xs text-slate-400 font-mono text-center sm:text-right">
-          <span>&copy; {new Date().getFullYear()} INTRANEURALS. Built for Engineers &amp; Students.</span>
+          <span>&copy; {new Date().getFullYear()} SKILLONIK. Built for Engineers &amp; Students.</span>
         </div>
 
       </div>
