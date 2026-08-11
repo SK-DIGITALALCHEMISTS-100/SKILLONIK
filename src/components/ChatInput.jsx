@@ -90,6 +90,7 @@ export default function ChatInput({ onSendMessage, isThinking }) {
             SKILLONIK AI can make mistakes. Verify critical advice and code solutions.
           </p>
         </div>
+        
       </div>
     </div>
   );

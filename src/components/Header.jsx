@@ -30,9 +30,7 @@ export default function Header({
           <h2 className="font-display font-bold text-slate-900 text-sm md:text-base leading-tight">
             SKILLONIK AI Hub
           </h2>
-          <p className="text-[10px] font-mono text-emerald-600 font-semibold hidden sm:block">
-            ● AI Mentor Engine Active
-          </p>
+          
         </div>
       </div>
 
