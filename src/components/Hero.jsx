@@ -19,20 +19,20 @@ export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
 
         {/* Subtitle */}
         <p>
-          Bridging the gap between engineering students and top-tier IT companies with
+          Bridging the gap between students and top-tier IT companies with
           data-driven learning roadmaps, production architecture blueprints, and real-time AI code mentorship.
         </p>
 
         {/* Action Buttons */}
         <div className="hero-cta-group">
-          <button 
+          {/* <button 
             className="btn-explore" 
             onClick={onLaunchMentor || onExplore}
           >
             <Sparkles className="w-5 h-5" />
             <span>Launch AI Mentor Free</span>
             <ArrowRight className="w-4 h-4 ml-1" />
-          </button>
+          </button> */}
 
           <button 
             className="btn-secondary"
@@ -69,7 +69,7 @@ export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  Verified Engineering Engine
+                  Verified Skillonik Engine
                 </span>
               </div>
             </div>

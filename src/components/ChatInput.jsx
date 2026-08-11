@@ -84,6 +84,12 @@ export default function ChatInput({ onSendMessage, isThinking }) {
           </button>
         </form>
 
+        {/* Disclaimer Footer */}
+        <div className="text-center mt-2">
+          <p className="font-mono text-[10px] text-slate-400">
+            SKILLONIK AI can make mistakes. Verify critical advice and code solutions.
+          </p>
+        </div>
         
       </div>
     </div>

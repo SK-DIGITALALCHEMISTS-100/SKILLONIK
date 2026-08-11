@@ -26,14 +26,14 @@ const PROBLEMS = [
     problem: "Students lack exposure to corporate engineering workflows, Agile sprints, code reviews, and CI/CD pipelines.",
     solution: "Production architectural blueprints and deep knowledge base articles on software lifecycles."
   },
-  {
-    id: 4,
-    color: "#10b981",
-    icon: Bug,
-    title: "Debugging & Interview blockades?",
-    problem: "Stuck on MongoDB timeouts, CORS headers, or tricky DSA questions during campus placements.",
-    solution: "Instant AI Mentor solutions with code snippets, root-cause analysis, and verified explanations."
-  }
+  // {
+  //   id: 4,
+  //   color: "#10b981",
+  //   icon: Bug,
+  //   title: "Debugging & Interview blockades?",
+  //   problem: "Stuck on MongoDB timeouts, CORS headers, or tricky DSA questions during campus placements.",
+  //   solution: "Instant AI Mentor solutions with code snippets, root-cause analysis, and verified explanations."
+  // }
 ];
 
 export default function ProblemSection({ onSelectPrompt }) {

@@ -24,7 +24,7 @@ export default function ProjectsView({ onSelectTopicPrompt }) {
               <span>Production Blueprint Gallery</span>
             </div>
             <h1 className="font-display text-2xl md:text-3xl font-extrabold text-slate-900">
-              Engineering Project Blueprints
+              Skillonik Project Blueprints
             </h1>
           </div>
           <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold font-mono">
