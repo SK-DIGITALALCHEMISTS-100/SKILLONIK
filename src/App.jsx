@@ -45,7 +45,7 @@ export default function App() {
     } catch (err) {
       console.error('Error saving user to localStorage:', err);
     }
-    // Smoothly transition to AI Mentor or previous view
+    // Transition to AI Mentor view
     setPage("AI Mentor");
     setCurrentView("chat");
   };
@@ -54,8 +54,11 @@ export default function App() {
     setUser(null);
     try {
       localStorage.removeItem('skillonik_user');
+      localStorage.removeItem('skillonik_token');
+      sessionStorage.removeItem('skillonik_user');
+      sessionStorage.removeItem('skillonik_token');
     } catch (err) {
-      console.error('Error removing user from localStorage:', err);
+      console.error('Error removing user from storage:', err);
     }
   };
 
@@ -93,12 +96,12 @@ export default function App() {
       let aiText = `Here is your SKILLONIK AI Mentor breakdown for: "${userMsg.text}"`;
       let codeSnippet = null;
       let codeLanguage = 'javascript';
-      let confidence = 'High Confidence - Verified Engineering Knowledge';
+      const confidence = 'High Confidence - Verified Engineering Knowledge';
 
       const textLower = userMsg.text.toLowerCase();
 
       if (textLower.includes('mern') || textLower.includes('react') || textLower.includes('node') || textLower.includes('mongo')) {
-        aiText = `To build or structure a high-performance Full Stack MERN application, you must follow the clean 3-tier architecture:
+        aiText = `To build or structure a high-performance Full Stack MERN application, follow the clean 3-tier architecture:
 1. **Frontend (React + Tailwind)**: Modular component structure with state management via Context API or Zustand.
 2. **Backend (Express + Node.js)**: RESTful controllers, middleware authentication, and centralized error handlers.
 3. **Database (MongoDB Atlas)**: Mongoose schemas with indexed fields and aggregation pipelines.`;
@@ -126,7 +129,7 @@ exports.registerUser = async (req, res) => {
 - Automatic OpenAPI/Swagger documentation at \`/docs\`.
 - Asynchronous database drivers like \`asyncpg\` and \`SQLModel\` for maximum throughput.`;
         codeLanguage = 'python';
-        codeSnippet = `from fastapi import FastAPI, Depends, HTTPException
+        codeSnippet = `from fastapi import FastAPI
 from pydantic import BaseModel
 
 app = FastAPI(title="SKILLONIK API")
@@ -197,7 +200,6 @@ async def create_item(item: Item):
         initialMode={page === "Signup" ? "signup" : "signin"}
         onLoginSuccess={handleLoginSuccess}
         onNavigateHome={() => setPage("Home")}
-        onNavigate={handleNavigate}
       />
     );
   }
@@ -218,18 +220,17 @@ async def create_item(item: Item):
           {page === "Home" && (
             <>
               <Hero 
-                onExplore={() => setPage("Roadmaps")} 
+                onLogin={() => setPage("Login")}
+                onExplore={() => setPage("Login")}
+                onExploreRoadmaps={() => setPage("Roadmaps")}
+                onNavigate={handleNavigate}
                 onLaunchMentor={() => {
                   setPage("AI Mentor");
                   setCurrentView("chat");
                 }}
                 onBrowseProjects={() => setPage("Projects")}
               />
-              <ProblemSection 
-                onSelectPrompt={(prompt) => {
-                  handleSendMessage({ text: prompt });
-                }} 
-              />
+              <ProblemSection />
             </>
           )}
 
@@ -237,10 +238,6 @@ async def create_item(item: Item):
             <SimplePage 
               page="Roadmaps" 
               onSelectPrompt={(prompt) => handleSendMessage({ text: prompt })}
-              onNavigateToMentor={() => {
-                setPage("AI Mentor");
-                setCurrentView("roadmaps");
-              }}
             />
           )}
 
@@ -256,15 +253,11 @@ async def create_item(item: Item):
             <SimplePage 
               page="Knowledge Base" 
               onSelectPrompt={(prompt) => handleSendMessage({ text: prompt })}
-              onNavigateToMentor={() => {
-                setPage("AI Mentor");
-                setCurrentView("chat");
-              }}
             />
           )}
         </main>
 
-        <Footer onNavigate={handleNavigate} />
+        <Footer />
       </div>
     );
   }
@@ -284,15 +277,11 @@ async def create_item(item: Item):
           }
         }}
         onNewChat={handleNewChat}
-        savedChatsCount={savedChats.length}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
         user={user}
         onLogout={handleLogout}
-        onOpenLogin={() => {
-          setAuthMode("signin");
-          setPage("Login");
-        }}
+        onOpenLogin={() => setPage("Login")}
       />
 
       {/* Top Header */}
@@ -300,10 +289,7 @@ async def create_item(item: Item):
         setIsMobileOpen={setIsMobileOpen}
         onOpenSavedDrawer={() => setIsSavedOpen(true)}
         user={user}
-        onOpenLogin={() => {
-          setAuthMode("signin");
-          setPage("Login");
-        }}
+        onOpenLogin={() => setPage("Login")}
       />
 
       {/* Main Workspace Area */}

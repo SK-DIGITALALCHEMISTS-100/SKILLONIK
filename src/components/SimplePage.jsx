@@ -74,7 +74,7 @@ const CONTENT = {
   },
 };
 
-export default function SimplePage({ page, onSelectPrompt, onNavigateToMentor }) {
+export default function SimplePage({ page, onSelectPrompt }) {
   const data = CONTENT[page] || CONTENT["Roadmaps"];
   if (!data) return null;
 
@@ -98,8 +98,6 @@ export default function SimplePage({ page, onSelectPrompt, onNavigateToMentor })
               {data.intro}
             </p>
           </div>
-
-         
         </div>
 
         {/* Structured Content Grid */}

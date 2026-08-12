@@ -1,7 +1,44 @@
 import React from 'react';
 import { Sparkles, ArrowRight, CheckCircle2, Terminal, Layers, Lightbulb } from 'lucide-react';
 
-export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
+export default function Hero({ 
+  onExplore, 
+  onLaunchMentor, 
+  onBrowseProjects, 
+  onExploreRoadmaps,
+  onLogin,
+  onNavigate 
+}) {
+  const handleExploreClick = () => {
+    if (onLogin) {
+      onLogin();
+    } else if (onNavigate) {
+      onNavigate("Login");
+    } else if (onExplore) {
+      onExplore();
+    } else if (onLaunchMentor) {
+      onLaunchMentor();
+    }
+  };
+
+  const handleRoadmapsClick = () => {
+    if (onExploreRoadmaps) {
+      onExploreRoadmaps();
+    } else if (onNavigate) {
+      onNavigate("Roadmaps");
+    } else if (onExplore) {
+      onExplore();
+    }
+  };
+
+  const handleProjectsClick = () => {
+    if (onBrowseProjects) {
+      onBrowseProjects();
+    } else if (onNavigate) {
+      onNavigate("Projects");
+    }
+  };
+
   return (
     <section className="hero">
       <div className="container">
@@ -27,7 +64,7 @@ export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
         <div className="hero-cta-group">
           <button 
             className="btn-explore" 
-            onClick={onLaunchMentor || onExplore}
+            onClick={handleExploreClick}
           >
             <Sparkles className="w-5 h-5" />
             <span>Explore</span>
@@ -36,7 +73,7 @@ export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
 
           <button 
             className="btn-secondary"
-            onClick={onExplore}
+            onClick={handleRoadmapsClick}
           >
             <Layers className="w-4 h-4" />
             <span>Explore Roadmaps</span>
@@ -45,7 +82,7 @@ export default function Hero({ onExplore, onLaunchMentor, onBrowseProjects }) {
           {onBrowseProjects && (
             <button 
               className="btn-secondary"
-              onClick={onBrowseProjects}
+              onClick={handleProjectsClick}
             >
               <Lightbulb className="w-4 h-4" />
               <span>Project Blueprints</span>

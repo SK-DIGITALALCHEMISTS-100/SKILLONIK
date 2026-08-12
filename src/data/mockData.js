@@ -43,46 +43,6 @@ export const INITIAL_SUGGESTIONS = [
   }
 ];
 
-export const INITIAL_MESSAGES = [
-  {
-    id: 'msg-1',
-    sender: 'user',
-    text: 'Can you explain how a MERN stack application connects to a MongoDB database? I am getting a timeout error.',
-    timestamp: '10:42 AM'
-  },
-  {
-    id: 'msg-2',
-    sender: 'ai',
-    text: `A MERN stack application connects to MongoDB using Mongoose, an Object Data Modeling (ODM) library for MongoDB and Node.js. A timeout error usually means your Node server cannot reach the MongoDB cluster or instance.
-
-### Common causes for MongoDB timeout errors:
-1. **IP Whitelisting**: If using MongoDB Atlas, ensure your current IP address is whitelisted under **Network Access** (or set \`0.0.0.0/0\` for development).
-2. **Invalid Connection String**: Check that your \`MONGO_URI\` in your \`.env\` file is correctly formatted with credentials and database name.
-3. **Port Blocking**: Corporate or college Wi-Fi firewalls sometimes block port \`27017\` or cluster ports.
-
-Here is the robust connection template with auto-reconnect handling:`,
-    codeSnippet: `const mongoose = require('mongoose');
-
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
-      autoIndex: true,
-    });
-    console.log(\`✅ MongoDB Connected: \${conn.connection.host}\`);
-  } catch (error) {
-    console.error(\`❌ MongoDB Connection Error: \${error.message}\`);
-    process.exit(1);
-  }
-};
-
-module.exports = connectDB;`,
-    codeLanguage: 'javascript',
-    confidence: 'High Confidence - Verified against Mongoose 8.x Docs',
-    timestamp: '10:43 AM'
-  }
-];
-
 export const MOCK_ROADMAPS = [
   {
     id: 'fullstack',
@@ -216,64 +176,5 @@ async def analyze_resume(file: UploadFile = File(...)):
     score = int((len(found) / len(keywords)) * 100)
     
     return {"matched_skills": found, "ats_score": score}`
-  }
-];
-
-export const MOCK_INTERVIEW_QUESTIONS = [
-  {
-    id: 'q1',
-    company: 'TCS Digital / Ninja',
-    topic: 'Data Structures',
-    difficulty: 'Medium',
-    question: 'How do you detect a cycle in a linked list using Floyd’s Cycle Detection Algorithm?',
-    answer: `Use two pointers: a 'slow' pointer moving 1 step at a time, and a 'fast' pointer moving 2 steps. If there is a cycle, the fast pointer will eventually meet the slow pointer inside the loop.
-
-Time Complexity: O(N)
-Space Complexity: O(1)`
-  },
-  {
-    id: 'q2',
-    company: 'Product Companies / Amazon',
-    topic: 'System Design',
-    difficulty: 'Hard',
-    question: 'How would you design a URL Shortener like Bitly?',
-    answer: `Key Components:
-1. **API Gateway**: Handles /shorten and /{shortKey} routes.
-2. **Encoding Algorithm**: Base62 conversion of an auto-incrementing 64-bit ID or MurmurHash3.
-3. **Database**: NoSQL (MongoDB/DynamoDB) for key-value lookup of shortKey -> originalUrl.
-4. **Caching Layer**: Redis cache for high-frequency short URLs to reduce DB load.`
-  },
-  {
-    id: 'q3',
-    company: 'Infosys / Wipro',
-    topic: 'Web Concepts',
-    difficulty: 'Easy',
-    question: 'What is the difference between SQL and NoSQL databases?',
-    answer: `SQL (Relational): Relational table structure, strict schema (ACID compliant). Examples: PostgreSQL, MySQL.
-NoSQL (Non-Relational): Document, Key-Value, or Graph based with dynamic schema. High horizontal scalability. Examples: MongoDB, Redis.`
-  }
-];
-
-export const MOCK_RESOURCES = [
-  {
-    id: 'r1',
-    type: 'article',
-    title: 'Understanding CORS in Node.js',
-    summary: 'A deep dive into Cross-Origin Resource Sharing for modern Web & Express applications.',
-    link: '#'
-  },
-  {
-    id: 'r2',
-    type: 'video',
-    title: 'Mongoose Schemas & Validation',
-    summary: 'Master complex MongoDB document schemas, sub-documents, and custom validators in 10 minutes.',
-    link: '#'
-  },
-  {
-    id: 'r3',
-    type: 'article',
-    title: 'System Design 101: Rate Limiters',
-    summary: 'Learn Token Bucket and Sliding Window algorithms for scalable web infrastructure.',
-    link: '#'
   }
 ];

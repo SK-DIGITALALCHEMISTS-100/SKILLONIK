@@ -1,7 +1,7 @@
 import React from 'react';
 import logo from "../assets/logo.png";
 
-export default function Footer({ onNavigate }) {
+export default function Footer() {
   return (
     <footer className="footer">
       <div className="container">
@@ -18,8 +18,6 @@ export default function Footer({ onNavigate }) {
             </p>
           </div>
         </div>
-
-       
 
         {/* Copyright */}
         <div className="text-xs text-slate-400 font-mono text-center sm:text-right">
