@@ -10,63 +10,25 @@ import {
   ArrowRight, 
   CheckCircle2, 
   ShieldCheck, 
-  Zap, 
   Layers, 
-  Building2, 
   ArrowLeft,
   KeyRound,
   RefreshCw
 } from 'lucide-react';
+import {
+  loginUser,
+  signupSendOtp,
+  signupVerifyOtp,
+  forgotSendOtp,
+  forgotVerifyOtp,
+  resetPassword
+} from '../api/authApi';
 
 const CAREER_TRACKS = [
   { id: 'mern', label: 'Full Stack MERN', icon: Layers },
   { id: 'ai-ml', label: 'AI & Machine Learning', icon: Sparkles },
-  { id: 'devops', label: 'Cloud & DevOps', icon: Zap },
-  { id: 'placement', label: 'TCS / Campus Placement', icon: Building2 },
-];
-
-const DEMO_USERS = [
-  {
-    role: 'Student Aspirant',
-    name: 'Aarav Sharma',
-    email: 'aarav.student@skillonik.dev',
-    avatar: '👨‍🎓',
-    track: 'TCS / Campus Placement',
-    experience: 'Final Year Student'
-  },
-  {
-    role: 'Full Stack Developer',
-    name: 'Balaji S',
-    email: 'balaji.dev@skillonik.dev',
-    avatar: '💻',
-    track: 'Full Stack MERN',
-    experience: 'Fresher'
-  },
-  {
-    role: 'AI / ML Engineer',
-    name: 'Priya Patel',
-    email: 'priya.ai@skillonik.dev',
-    avatar: '🚀',
-    track: 'AI & Machine Learning',
-    experience: 'Working Professional'
-  }
-];
-
-const TESTIMONIALS = [
-  {
-    quote: "SKILLONIK's AI Mentor solved my MERN architecture doubts in seconds. Cleared my TCS Digital technical round with ease!",
-    author: "Balaji S",
-    role: "Placed as Digital Engineer",
-    company: "TCS",
-    badge: "Verified Candidate"
-  },
-  {
-    quote: "The curated roadmaps and instant code review feature gave me the exact confidence needed for top product companies.",
-    author: "Sneha Reddy",
-    role: "Full Stack SDE Intern",
-    company: "Infosys",
-    badge: "Verified Candidate"
-  }
+  { id: 'devops', label: 'Cloud & DevOps', icon: Layers },
+  { id: 'placement', label: 'TCS / Campus Placement', icon: ShieldCheck },
 ];
 
 export default function AuthPage({ 
@@ -75,7 +37,6 @@ export default function AuthPage({
   onNavigateHome
 }) {
   const [mode, setMode] = useState(initialMode); // 'signin' | 'signup'
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
 
   // Sign In Form State
   const [signInEmail, setSignInEmail] = useState('');
@@ -93,6 +54,11 @@ export default function AuthPage({
   const [experienceLevel, setExperienceLevel] = useState('Final Year Student');
   const [agreedTerms, setAgreedTerms] = useState(true);
 
+  // Signup Email OTP State
+  const [showSignupOtp, setShowSignupOtp] = useState(false);
+  const [signupOtp, setSignupOtp] = useState(['', '', '', '', '', '']);
+  const [signupOtpTimer, setSignupOtpTimer] = useState(300);
+
   // UI & Feedback States
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -107,16 +73,9 @@ export default function AuthPage({
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [otpTimer, setOtpTimer] = useState(45);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
-  // Rotate testimonials every 6 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Countdown timer for OTP
+  // Countdown timer for Forgot Password OTP
   useEffect(() => {
     let interval = null;
     if (isForgotOpen && forgotStep === 2 && otpTimer > 0) {
@@ -124,6 +83,17 @@ export default function AuthPage({
     }
     return () => clearInterval(interval);
   }, [isForgotOpen, forgotStep, otpTimer]);
+
+  // Signup OTP countdown
+  useEffect(() => {
+    if (!showSignupOtp || signupOtpTimer <= 0) return;
+
+    const interval = setInterval(() => {
+      setSignupOtpTimer((t) => (t > 0 ? t - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [showSignupOtp, signupOtpTimer]);
 
   // Calculate dynamic password strength
   const getPasswordStrength = (pass) => {
@@ -156,78 +126,70 @@ export default function AuthPage({
     setTimeout(() => setShake(false), 500);
   };
 
-  // Quick 1-Click Demo Login Handler
-  const handleQuickDemoLogin = (demo) => {
-    setIsLoading(true);
-    setErrorMessage('');
-    setTimeout(() => {
-      setIsLoading(false);
-      const user = {
-        name: demo.name,
-        email: demo.email,
-        avatar: demo.avatar,
-        track: demo.track,
-        role: demo.role,
-        experience: demo.experience,
-        isLoggedIn: true,
-        loginTime: new Date().toISOString()
-      };
-      if (onLoginSuccess) onLoginSuccess(user);
-    }, 600);
-  };
-
   // Sign In Submission
-  const handleSignInSubmit = (e) => {
+  const handleSignInSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
 
-    if (!signInEmail || !signInPassword) {
-      triggerError('Please enter both your email/username and password.');
+    if (!signInEmail.trim() || !signInPassword) {
+      triggerError('Please enter your email and password.');
       return;
     }
 
-    if (signInPassword.length < 4) {
-      triggerError('Password must be at least 4 characters long.');
-      return;
-    }
+    try {
+      setIsLoading(true);
 
-    setIsLoading(true);
+      const result = await loginUser({
+        email: signInEmail.trim(),
+        password: signInPassword
+      });
 
-    setTimeout(() => {
-      setIsLoading(false);
-      // Construct user session
-      const namePart = signInEmail.split('@')[0];
-      const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-      
-      const user = {
-        name: capitalizedName || 'Engineer',
-        email: signInEmail,
-        avatar: '👨‍💻',
-        track: 'Full Stack MERN',
-        role: 'Registered Member',
-        experience: 'Final Year Student',
-        isLoggedIn: true,
-        loginTime: new Date().toISOString()
-      };
+      // Save JWT
+      if (result.token) {
+        if (rememberMe) {
+          localStorage.setItem('skillonik_token', result.token);
+        } else {
+          sessionStorage.setItem('skillonik_token', result.token);
+        }
+      }
+
+      // Save user
+      if (result.user) {
+        if (rememberMe) {
+          localStorage.setItem('skillonik_user', JSON.stringify(result.user));
+        } else {
+          sessionStorage.setItem('skillonik_user', JSON.stringify(result.user));
+        }
+      }
 
       setSuccessMessage('Welcome back! Initializing your AI Mentor workspace...');
+
       setTimeout(() => {
-        if (onLoginSuccess) onLoginSuccess(user);
-      }, 700);
-    }, 800);
+        if (onLoginSuccess) {
+          onLoginSuccess(result.user);
+        }
+      }, 500);
+
+    } catch (err) {
+      triggerError(err.message || 'Login failed.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Sign Up Submission
-  const handleSignUpSubmit = (e) => {
+  // Sign Up Submission - sends OTP through backend
+  const handleSignUpSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
 
     if (!signUpName.trim()) {
       triggerError('Please enter your full name.');
       return;
     }
 
-    if (!signUpEmail || !signUpEmail.includes('@')) {
+    if (!signUpEmail.trim() || !signUpEmail.includes('@')) {
       triggerError('Please enter a valid email address.');
       return;
     }
@@ -247,60 +209,175 @@ export default function AuthPage({
       return;
     }
 
-    setIsLoading(true);
+    try {
+      setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
       const selectedTrackObj = CAREER_TRACKS.find((t) => t.id === selectedTrack);
-      
-      const user = {
+
+      await signupSendOtp({
         name: signUpName.trim(),
         email: signUpEmail.trim(),
-        avatar: '🚀',
+        password: signUpPassword,
         track: selectedTrackObj ? selectedTrackObj.label : 'Full Stack MERN',
-        role: 'Verified Candidate',
-        experience: experienceLevel,
-        isLoggedIn: true,
-        loginTime: new Date().toISOString()
-      };
+        experience: experienceLevel
+      });
 
-      setSuccessMessage('Account created successfully! Welcome to SKILLONIK.');
-      setTimeout(() => {
-        if (onLoginSuccess) onLoginSuccess(user);
-      }, 700);
-    }, 900);
+      setSignupOtp(['', '', '', '', '', '']);
+      setSignupOtpTimer(300);
+      setShowSignupOtp(true);
+    } catch (err) {
+      triggerError(err.message || 'Unable to send signup OTP.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Social Sign-In Simulation
-  const handleSocialAuth = (provider) => {
-    setIsLoading(true);
-    setTimeout(() => {
+  // Signup OTP input
+  const handleSignupOtpChange = (index, value) => {
+    const cleanValue = value.replace(/\D/g, '').slice(-1);
+    const updated = [...signupOtp];
+    updated[index] = cleanValue;
+    setSignupOtp(updated);
+
+    if (cleanValue && index < 5) {
+      document.getElementById(`signup-otp-${index + 1}`)?.focus();
+    }
+
+    if (!cleanValue && index > 0) {
+      document.getElementById(`signup-otp-${index - 1}`)?.focus();
+    }
+  };
+
+  // Verify signup OTP and create account
+  const handleSignupOtpVerify = async () => {
+    const otp = signupOtp.join('');
+
+    if (otp.length !== 6) {
+      triggerError('Please enter the complete 6-digit OTP.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setErrorMessage('');
+
+      const result = await signupVerifyOtp({
+        name: signUpName.trim(),
+        email: signUpEmail.trim(),
+        password: signUpPassword,
+        otp,
+        track: CAREER_TRACKS.find((t) => t.id === selectedTrack)?.label || 'Full Stack MERN',
+        experience: experienceLevel
+      });
+
+      if (result.token) {
+        localStorage.setItem('skillonik_token', result.token);
+      }
+
+      localStorage.setItem('skillonik_user', JSON.stringify(result.user));
+
+      setShowSignupOtp(false);
+      setSuccessMessage('Account created successfully! Welcome to SKILLONIK.');
+
+      setTimeout(() => {
+        if (onLoginSuccess) onLoginSuccess(result.user);
+      }, 500);
+    } catch (err) {
+      triggerError(err.message || 'Invalid or expired OTP.');
+    } finally {
       setIsLoading(false);
-      const user = {
-        name: `${provider} Engineer`,
-        email: `user@${provider.toLowerCase()}.com`,
-        avatar: provider === 'Google' ? '🌐' : provider === 'GitHub' ? '🐙' : '💼',
-        track: 'Full Stack MERN',
-        role: `${provider} Connected User`,
-        experience: 'Software Engineer',
-        isLoggedIn: true,
-        loginTime: new Date().toISOString()
-      };
-      if (onLoginSuccess) onLoginSuccess(user);
-    }, 700);
+    }
   };
 
   // Forgot Password OTP handlers
   const handleOtpChange = (index, value) => {
-    if (value.length > 1) value = value.slice(-1);
+    const cleanValue = value.replace(/\D/g, '').slice(-1);
     const newOtp = [...forgotOtp];
-    newOtp[index] = value;
+    newOtp[index] = cleanValue;
     setForgotOtp(newOtp);
 
-    // Auto focus next input
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-input-${index + 1}`);
-      if (nextInput) nextInput.focus();
+    if (cleanValue && index < 5) {
+      document.getElementById(`otp-input-${index + 1}`)?.focus();
+    } else if (!cleanValue && index > 0) {
+      document.getElementById(`otp-input-${index - 1}`)?.focus();
+    }
+  };
+
+  const handleForgotSendOtp = async () => {
+    if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
+      triggerError('Please enter a valid email address.');
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      setErrorMessage('');
+
+      await forgotSendOtp(forgotEmail.trim());
+
+      setForgotOtp(['', '', '', '', '', '']);
+      setForgotStep(2);
+      setOtpTimer(45);
+    } catch (err) {
+      triggerError(err.message || 'Unable to send OTP.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotVerifyOtp = async () => {
+    const otp = forgotOtp.join('');
+
+    if (otp.length !== 6) {
+      triggerError('Please enter the complete 6-digit OTP.');
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      setErrorMessage('');
+
+      await forgotVerifyOtp({
+        email: forgotEmail.trim(),
+        otp
+      });
+
+      setForgotStep(3);
+    } catch (err) {
+      triggerError(err.message || 'Invalid or expired OTP.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (newPassword.length < 6) {
+      triggerError('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      triggerError('Passwords do not match.');
+      return;
+    }
+
+    const otp = forgotOtp.join('');
+
+    try {
+      setForgotLoading(true);
+      setErrorMessage('');
+
+      await resetPassword({
+        email: forgotEmail.trim(),
+        otp,
+        new_password: newPassword
+      });
+
+      setForgotStep(4);
+    } catch (err) {
+      triggerError(err.message || 'Unable to reset password.');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -353,7 +430,7 @@ export default function AuthPage({
       {/* Main Content Split Container */}
       <div className="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center my-auto">
         
-        {/* Left Side: Brand Story & Testimonials (5 cols) */}
+        {/* Left Side: Brand Story (5 cols) */}
         <div className="lg:col-span-5 space-y-6 text-left">
           
           {/* Eyebrow Pill */}
@@ -404,8 +481,6 @@ export default function AuthPage({
             </div>
           </div>
 
-          
-
         </div>
 
         {/* Right Side: Auth Card (7 cols) */}
@@ -444,11 +519,8 @@ export default function AuthPage({
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Create Account</span>
-              
               </button>
             </div>
-
-            
 
             {/* Feedback Messages */}
             {errorMessage && (
@@ -558,153 +630,256 @@ export default function AuthPage({
               </form>
             )}
 
-            {/* ===================== SIGN UP FORM ===================== */}
+            {/* ===================== SIGN UP / SIGNUP OTP ===================== */}
             {mode === 'signup' && (
-              <form onSubmit={handleSignUpSubmit} className="space-y-4">
-                {/* Full Name & Email Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Full Name
-                    </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              showSignupOtp ? (
+                <div className="space-y-5">
+                  <div className="text-center">
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+
+                    <h3 className="font-display font-bold text-xl text-slate-900 mt-3">
+                      Verify Your Email
+                    </h3>
+
+                    <p className="text-xs text-slate-500 mt-1">
+                      We sent a 6-digit OTP to
+                    </p>
+
+                    <p className="text-sm font-bold text-blue-600">
+                      {signUpEmail}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center gap-2">
+                    {signupOtp.map((digit, index) => (
                       <input
+                        key={index}
+                        id={`signup-otp-${index}`}
                         type="text"
-                        value={signUpName}
-                        onChange={(e) => setSignUpName(e.target.value)}
-                        placeholder="Balaji S"
-                        className="auth-input"
-                        required
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleSignupOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Backspace' && !signupOtp[index] && index > 0) {
+                            document.getElementById(`signup-otp-${index - 1}`)?.focus();
+                          }
+                        }}
+                        className="w-10 h-12 text-center font-mono font-bold text-lg rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-slate-50"
                       />
-                    </div>
+                    ))}
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Email Address
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        type="email"
-                        value={signUpEmail}
-                        onChange={(e) => setSignUpEmail(e.target.value)}
-                        placeholder="balaji@example.com"
-                        className="auth-input"
-                        required
-                      />
-                    </div>
+                  <div className="text-center text-xs text-slate-500">
+                    {signupOtpTimer > 0 ? (
+                      <span>
+                        OTP expires in <strong className="text-blue-600 font-mono">{signupOtpTimer}s</strong>
+                      </span>
+                    ) : (
+                      <span className="text-rose-600 font-semibold">
+                        OTP expired. Please go back and request a new OTP.
+                      </span>
+                    )}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSignupOtpVerify}
+                    disabled={isLoading || signupOtp.join('').length !== 6 || signupOtpTimer <= 0}
+                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Verifying OTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Verify Email &amp; Create Account</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSignupOtp(false);
+                      setSignupOtp(['', '', '', '', '', '']);
+                      setErrorMessage('');
+                    }}
+                    className="w-full text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                  >
+                    ← Back to signup
+                  </button>
+
                 </div>
+              ) : (
+                <form onSubmit={handleSignUpSubmit} className="space-y-4">
+                  {/* Full Name & Email Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Full Name</label>
+                      <div className="relative">
+                        <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={signUpName}
+                          onChange={(e) => setSignUpName(e.target.value)}
+                          placeholder="Balaji S"
+                          className="auth-input"
+                          required
+                        />
+                      </div>
+                    </div>
 
-                {/* Password & Confirm Password Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        type={showSignUpPassword ? 'text' : 'password'}
-                        value={signUpPassword}
-                        onChange={(e) => setSignUpPassword(e.target.value)}
-                        placeholder="Min 6 characters"
-                        className="auth-input pr-10"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSignUpPassword(!showSignUpPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Email Address</label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="email"
+                          value={signUpEmail}
+                          onChange={(e) => setSignUpEmail(e.target.value)}
+                          placeholder="balaji@example.com"
+                          className="auth-input"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Password & Confirm Password Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Password</label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type={showSignUpPassword ? 'text' : 'password'}
+                          value={signUpPassword}
+                          onChange={(e) => setSignUpPassword(e.target.value)}
+                          placeholder="Min 6 characters"
+                          className="auth-input pr-10"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        >
+                          {showSignUpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Confirm Password</label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type={showSignUpPassword ? 'text' : 'password'}
+                          value={signUpConfirmPassword}
+                          onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                          placeholder="Re-enter password"
+                          className="auth-input"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Career Track & Experience Selection */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Focus Track</label>
+                      <select
+                        value={selectedTrack}
+                        onChange={(e) => setSelectedTrack(e.target.value)}
+                        className="auth-input-no-icon"
                       >
-                        {showSignUpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                        {CAREER_TRACKS.map((t) => (
+                          <option key={t.id} value={t.id}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Experience Level</label>
+                      <select
+                        value={experienceLevel}
+                        onChange={(e) => setExperienceLevel(e.target.value)}
+                        className="auth-input-no-icon"
+                      >
+                        <option value="1st / 2nd Year Student">1st / 2nd Year Student</option>
+                        <option value="3rd Year Student">3rd Year Student</option>
+                        <option value="Final Year Student">Final Year Student</option>
+                        <option value="Fresher Graduate">Fresher Graduate</option>
+                        <option value="Working Professional">Working Professional</option>
+                      </select>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Confirm Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        type={showSignUpPassword ? 'text' : 'password'}
-                        value={signUpConfirmPassword}
-                        onChange={(e) => setSignUpConfirmPassword(e.target.value)}
-                        placeholder="Re-enter password"
-                        className="auth-input"
-                        required
-                      />
+                  {/* Password Strength */}
+                  {signUpPassword && (
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-slate-600">Password Strength:</span>
+                        <span className={strength.textCol}>{strength.label}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div className={`h-full ${strength.color} transition-all duration-300`} style={{ width: `${strength.score}%` }} />
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono pt-0.5">
+                        <span className={signUpPassword.length >= 8 ? 'text-emerald-600 font-bold' : ''}>✓ 8+ chars</span>
+                        <span className={/[0-9]/.test(signUpPassword) ? 'text-emerald-600 font-bold' : ''}>✓ Numbers</span>
+                        <span className={/[A-Z]/.test(signUpPassword) ? 'text-emerald-600 font-bold' : ''}>✓ Uppercase</span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Password Strength Indicator */}
-                {signUpPassword && (
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 animate-fade-in-up">
-                    <div className="flex items-center justify-between text-[11px] font-bold">
-                      <span className="text-slate-600">Password Strength:</span>
-                      <span className={strength.textCol}>{strength.label}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full ${strength.color} transition-all duration-300`} 
-                        style={{ width: `${strength.score}%` }} 
-                      />
-                    </div>
-                    <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono pt-0.5">
-                      <span className={signUpPassword.length >= 8 ? 'text-emerald-600 font-bold' : ''}>✓ 8+ chars</span>
-                      <span className={/[0-9]/.test(signUpPassword) ? 'text-emerald-600 font-bold' : ''}>✓ Numbers</span>
-                      <span className={/[A-Z]/.test(signUpPassword) ? 'text-emerald-600 font-bold' : ''}>✓ Uppercase</span>
-                    </div>
-                  </div>
-                )}
-
-                
-
-                
-                {/* Terms and Privacy Agreement */}
-                <div className="pt-1">
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={agreedTerms}
-                      onChange={(e) => setAgreedTerms(e.target.checked)}
-                      className="w-4 h-4 mt-0.5 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <span className="text-[11px] text-slate-600 leading-snug">
-                      I agree to SKILLONIK's <span className="text-blue-600 font-semibold underline">Terms of Service</span> &amp; <span className="text-blue-600 font-semibold underline">Privacy Policy</span>.
-                    </span>
-                  </label>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70"
-                >
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Creating Account...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Create Account &amp; Get AI Mentorship</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
                   )}
-                </button>
-              </form>
+
+                  {/* Terms */}
+                  <div className="pt-1">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={agreedTerms}
+                        onChange={(e) => setAgreedTerms(e.target.checked)}
+                        className="w-4 h-4 mt-0.5 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span className="text-[11px] text-slate-600 leading-snug">
+                        I agree to SKILLONIK's <span className="text-blue-600 font-semibold underline">Terms of Service</span> &amp; <span className="text-blue-600 font-semibold underline">Privacy Policy</span>.
+                      </span>
+                    </label>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Sending OTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Create Account &amp; Get AI Mentorship</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )
             )}
 
-            </div>
           </div>
+        </div>
 
       </div>
 
@@ -720,11 +895,26 @@ export default function AuthPage({
             
             {/* Close Button */}
             <button
-              onClick={() => setIsForgotOpen(false)}
+              onClick={() => {
+                setIsForgotOpen(false);
+                setForgotStep(1);
+                setForgotOtp(['', '', '', '', '', '']);
+                setNewPassword('');
+                setConfirmNewPassword('');
+                setErrorMessage('');
+              }}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
             >
               ✕
             </button>
+
+            {/* Modal Error Message */}
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2 animate-fade-in-up">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             {/* Step 1: Request Reset Link / OTP */}
             {forgotStep === 1 && (
@@ -751,15 +941,18 @@ export default function AuthPage({
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (forgotEmail.includes('@')) {
-                      setForgotStep(2);
-                      setOtpTimer(45);
-                    }
-                  }}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
+                  onClick={handleForgotSendOtp}
+                  disabled={forgotLoading}
+                  className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Send 6-Digit OTP Code
+                  {forgotLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Sending OTP...</span>
+                    </>
+                  ) : (
+                    <span>Send 6-Digit OTP Code</span>
+                  )}
                 </button>
               </div>
             )}
@@ -782,6 +975,7 @@ export default function AuthPage({
                       key={idx}
                       id={`otp-input-${idx}`}
                       type="text"
+                      inputMode="numeric"
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
@@ -794,7 +988,8 @@ export default function AuthPage({
                     <span>Resend code in <strong className="text-blue-600 font-mono">{otpTimer}s</strong></span>
                   ) : (
                     <button 
-                      onClick={() => setOtpTimer(45)} 
+                      type="button"
+                      onClick={handleForgotSendOtp} 
                       className="text-blue-600 font-bold hover:underline cursor-pointer"
                     >
                       Resend OTP Code
@@ -803,10 +998,28 @@ export default function AuthPage({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setForgotStep(3)}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
+                  onClick={handleForgotVerifyOtp}
+                  disabled={forgotLoading || forgotOtp.join('').length !== 6}
+                  className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Verify Code
+                  {forgotLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Verifying Code...</span>
+                    </>
+                  ) : (
+                    <span>Verify Code</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotStep(1);
+                    setErrorMessage('');
+                  }}
+                  className="w-full text-xs text-slate-500 hover:text-slate-700 text-center cursor-pointer"
+                >
+                  ← Change email address
                 </button>
               </div>
             )}
@@ -820,7 +1033,7 @@ export default function AuthPage({
                 <div className="text-center">
                   <h3 className="font-display font-bold text-xl text-slate-900">Create New Password</h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Choose a strong, secure password for your account.
+                    Choose a strong, secure password for your account (min 6 characters).
                   </p>
                 </div>
                 <div className="space-y-3">
@@ -832,6 +1045,7 @@ export default function AuthPage({
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••••••"
                       className="auth-input-no-icon"
+                      required
                     />
                   </div>
                   <div>
@@ -842,15 +1056,24 @@ export default function AuthPage({
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       placeholder="••••••••••••"
                       className="auth-input-no-icon"
+                      required
                     />
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setForgotStep(4)}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-md cursor-pointer"
+                  disabled={forgotLoading}
+                  onClick={handleResetPassword}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/25 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Update Password &amp; Continue
+                  {forgotLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Updating Password...</span>
+                    </>
+                  ) : (
+                    <span>Update Password &amp; Continue</span>
+                  )}
                 </button>
               </div>
             )}
@@ -871,9 +1094,15 @@ export default function AuthPage({
                   type="button"
                   onClick={() => {
                     setIsForgotOpen(false);
+                    setForgotStep(1);
+                    setForgotOtp(['', '', '', '', '', '']);
+                    setNewPassword('');
+                    setConfirmNewPassword('');
+                    setErrorMessage('');
+                    setSuccessMessage('Password reset successfully! Please sign in with your new password.');
                     setMode('signin');
                   }}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md cursor-pointer"
+                  className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md cursor-pointer"
                 >
                   Return to Sign In
                 </button>

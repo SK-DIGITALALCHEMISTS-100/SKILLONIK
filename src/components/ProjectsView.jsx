@@ -1,16 +1,9 @@
 import React, { useState } from 'react';
-import { Lightbulb, Sparkles, Copy, Check, Rocket, Terminal } from 'lucide-react';
+import { Lightbulb, Sparkles } from 'lucide-react';
 import { MOCK_PROJECTS } from '../data/mockData';
 
 export default function ProjectsView({ onSelectTopicPrompt }) {
   const [selectedProject, setSelectedProject] = useState(MOCK_PROJECTS[0]);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyCode = (code) => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="flex-1 w-full flex flex-col relative px-4 md:px-8 py-6 h-full overflow-y-auto custom-scrollbar pb-36">
@@ -61,18 +54,21 @@ export default function ProjectsView({ onSelectTopicPrompt }) {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-1 mt-2">
-                {proj.tech.slice(0, 3).map((t, idx) => (
-                  <span key={idx} className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-mono">
-                    {t}
-                  </span>
-                ))}
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-1">
+                  {proj.tech.slice(0, 3).map((t, idx) => (
+                    <span key={idx} className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-mono">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+
+                
               </div>
             </div>
           ))}
         </div>
 
-       
       </div>
     </div>
   );
