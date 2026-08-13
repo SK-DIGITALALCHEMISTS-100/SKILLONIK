@@ -178,3 +178,136 @@ async def analyze_resume(file: UploadFile = File(...)):
     return {"matched_skills": found, "ats_score": score}`
   }
 ];
+
+export const INITIAL_SAVED_CHATS = [
+  {
+    id: 'sc-1',
+    title: 'MERN MongoDB Timeout Debugging',
+    date: 'Aug 06, 2026',
+    createdAt: 1785980000000,
+    messageCount: 2,
+    messages: [
+      {
+        id: 'msg-sc1-1',
+        sender: 'user',
+        text: 'My Node.js Express server is throwing a MongooseServerSelectionError: connection timed out when connecting to MongoDB Atlas on Render. How do I resolve this?',
+        timestamp: '02:15 PM'
+      },
+      {
+        id: 'msg-sc1-2',
+        sender: 'ai',
+        text: 'This timeout error almost always occurs due to MongoDB Atlas Network Access IP restrictions, missing DNS resolution, or aggressive timeout configurations.\n\n### Resolution Steps:\n1. **Network Access**: Go to MongoDB Atlas -> **Network Access** -> Ensure `0.0.0.0/0` (Allow Access from Anywhere) is active for cloud hosting platforms like Render/Vercel.\n2. **DNS & Connection String**: Ensure you are using the \`mongodb+srv://\` URI and proper URL encoding for special characters in your password.\n3. **Connection Options**: Configure \`serverSelectionTimeoutMS\` and connection retry handlers.',
+        codeLanguage: 'javascript',
+        codeSnippet: `const mongoose = require('mongoose');
+
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      maxPoolSize: 10,
+    });
+
+    console.log(\`MongoDB Connected: \${conn.connection.host}\`);
+  } catch (error) {
+    console.error(\`MongoDB Connection Error: \${error.message}\`);
+    process.exit(1);
+  }
+};
+
+module.exports = connectDB;`,
+        confidence: 'High Confidence - Verified Engineering Knowledge',
+        timestamp: '02:16 PM'
+      }
+    ]
+  },
+  {
+    id: 'sc-2',
+    title: 'FastAPI Async SQLModel Setup',
+    date: 'Aug 04, 2026',
+    createdAt: 1785800000000,
+    messageCount: 2,
+    messages: [
+      {
+        id: 'msg-sc2-1',
+        sender: 'user',
+        text: 'Explain FastAPI dependency injection, async database connections with SQLModel, and OpenAPI schema generation with code examples.',
+        timestamp: '11:30 AM'
+      },
+      {
+        id: 'msg-sc2-2',
+        sender: 'ai',
+        text: 'FastAPI combines Python type hints with Async Engine and SQLModel (which merges SQLAlchemy and Pydantic) for high-throughput asynchronous services.\n\n- **Async Session Generator**: Use an async generator with \`Depends()\` to inject scoped database sessions per request.\n- **Automatic OpenAPI Docs**: Pydantic models automatically produce Interactive Swagger UI documentation at \`/docs\`.',
+        codeLanguage: 'python',
+        codeSnippet: `from fastapi import FastAPI, Depends
+from sqlmodel import SQLModel, Field, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine
+from typing import AsyncGenerator
+
+DATABASE_URL = "sqlite+aiosqlite:///./skillonik.db"
+engine = create_async_engine(DATABASE_URL, echo=True)
+
+class Project(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    title: str
+    tech_stack: str
+
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSession(engine) as session:
+        yield session
+
+app = FastAPI(title="SKILLONIK Engine API")
+
+@app.get("/projects", response_model=list[Project])
+async def read_projects(session: AsyncSession = Depends(get_session)):
+    result = await session.exec(select(Project))
+    return result.all()`,
+        confidence: 'High Confidence - Verified Engineering Knowledge',
+        timestamp: '11:31 AM'
+      }
+    ]
+  },
+  {
+    id: 'sc-3',
+    title: 'TCS Digital Coding Solutions',
+    date: 'Aug 01, 2026',
+    createdAt: 1785500000000,
+    messageCount: 2,
+    messages: [
+      {
+        id: 'msg-sc3-1',
+        sender: 'user',
+        text: 'Give me the top technical problem and solution for TCS Digital & Infosys placement rounds on Binary Tree Traversals.',
+        timestamp: '04:45 PM'
+      },
+      {
+        id: 'msg-sc3-2',
+        sender: 'ai',
+        text: 'Here is a core algorithmic problem frequently evaluated in TCS Digital, Infosys SP/DSE, and top product hiring assessments:\n\n### Problem: Binary Tree Level Order Traversal (BFS)\n**Key Strategy**: Use a First-In-First-Out (FIFO) queue. Capture the current queue size before iterating to group each tree level into a sub-array.\n\n- **Time Complexity**: $\\mathcal{O}(N)$ where $N$ is the number of nodes.\n- **Space Complexity**: $\\mathcal{O}(N)$ for the maximum breadth level in the queue.',
+        codeLanguage: 'javascript',
+        codeSnippet: `function levelOrder(root) {
+  if (!root) return [];
+  const result = [];
+  const queue = [root];
+
+  while (queue.length > 0) {
+    const levelSize = queue.length;
+    const currentLevel = [];
+
+    for (let i = 0; i < levelSize; i++) {
+      const node = queue.shift();
+      currentLevel.push(node.val);
+      if (node.left) queue.push(node.left);
+      if (node.right) queue.push(node.right);
+    }
+    result.push(currentLevel);
+  }
+  return result;
+}`,
+        confidence: 'High Confidence - Verified Engineering Knowledge',
+        timestamp: '04:46 PM'
+      }
+    ]
+  }
+];
