@@ -4,14 +4,20 @@ import {
   History, 
   Sparkles, 
   Zap, 
-  LogIn 
+  LogIn,
+  Bookmark,
+  BookmarkCheck
 } from 'lucide-react';
 
 export default function Header({ 
   setIsMobileOpen, 
   onOpenSavedDrawer,
   user,
-  onOpenLogin
+  onOpenLogin,
+  activeSession = null,
+  messagesCount = 0,
+  onSaveSession,
+  currentView = 'chat'
 }) {
   return (
     <header className="fixed top-0 right-0 w-full md:w-[calc(100%-256px)] h-16 bg-white/70 backdrop-blur-xl border-b border-white/80 flex items-center justify-between px-4 md:px-8 z-40 transition-all shadow-xs">
@@ -34,7 +40,7 @@ export default function Header({
             SKILLONIK AI Hub
           </h2>
           <p className="hidden sm:block text-[10px] text-slate-500 font-mono">
-            Enterprise Mentorship &amp; Placement Engine
+            {activeSession ? `Active: ${activeSession.title}` : 'Enterprise Mentorship & Placement Engine'}
           </p>
         </div>
       </div>
@@ -45,6 +51,22 @@ export default function Header({
           <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
           <span>Placement Mode Active</span>
         </div>
+
+        {/* Quick Save in Header if in chat and messages exist */}
+        {currentView === 'chat' && messagesCount > 0 && onSaveSession && (
+          <button
+            onClick={() => onSaveSession()}
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              activeSession
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+            title={activeSession ? "Session Saved (Click to update)" : "Save current chat session"}
+          >
+            {activeSession ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+            <span>{activeSession ? 'Saved' : 'Save Session'}</span>
+          </button>
+        )}
 
         {/* User Auth Status / Sign In Button */}
         {user ? (
@@ -64,16 +86,7 @@ export default function Header({
           </button>
         )}
 
-        {/* Saved Drawer Trigger */}
-        <button
-          onClick={onOpenSavedDrawer}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-slate-700 bg-white/80 hover:bg-white border border-white/90 rounded-xl transition-all relative cursor-pointer shadow-xs text-xs font-semibold"
-          title="Saved Sessions"
-        >
-          <History className="w-4 h-4 text-blue-600" />
-          <span className="hidden sm:inline">History</span>
-          <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-        </button>
+       
       </div>
     </header>
   );
