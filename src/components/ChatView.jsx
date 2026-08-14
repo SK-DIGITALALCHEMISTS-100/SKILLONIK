@@ -10,27 +10,228 @@ import {
   Cpu, 
   Layers, 
   FileCode,
-  Bookmark,
-  BookmarkCheck,
-  PlusCircle,
-  History,
-  Edit3,
-  X
+  AlertCircle
 } from 'lucide-react';
 import { INITIAL_SUGGESTIONS } from '../data/mockData';
+
+/**
+ * Inline markdown parser for bold, inline code, etc.
+ */
+function renderInlineMarkdown(str) {
+  if (!str) return null;
+  const parts = [];
+  const inlineRegex = /(\*\*.*?\*\*|`.*?`)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = inlineRegex.exec(str)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(str.substring(lastIndex, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith('**') && token.endsWith('**')) {
+      parts.push(
+        <strong key={match.index} className="font-bold text-slate-900">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith('`') && token.endsWith('`')) {
+      parts.push(
+        <code key={match.index} className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-mono text-[12px] font-semibold">
+          {token.slice(1, -1)}
+        </code>
+      );
+    }
+    lastIndex = inlineRegex.lastIndex;
+  }
+
+  if (lastIndex < str.length) {
+    parts.push(str.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : str;
+}
+
+/**
+ * Paragraph & List markdown parser
+ */
+function renderMarkdownParagraphs(text) {
+  if (!text) return null;
+  const lines = text.split(/\r?\n/);
+  const elements = [];
+  let currentList = [];
+  let isNumberedList = false;
+
+  const flushList = () => {
+    if (currentList.length > 0) {
+      if (isNumberedList) {
+        elements.push(
+          <ol key={`ol-${elements.length}`} className="list-decimal pl-5 space-y-1 my-1.5 text-slate-700">
+            {currentList.map((item, idx) => (
+              <li key={idx} className="pl-1">
+                {renderInlineMarkdown(item)}
+              </li>
+            ))}
+          </ol>
+        );
+      } else {
+        elements.push(
+          <ul key={`ul-${elements.length}`} className="list-disc pl-5 space-y-1 my-1.5 text-slate-700">
+            {currentList.map((item, idx) => (
+              <li key={idx} className="pl-1">
+                {renderInlineMarkdown(item)}
+              </li>
+            ))}
+          </ul>
+        );
+      }
+      currentList = [];
+      isNumberedList = false;
+    }
+  };
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushList();
+      return;
+    }
+
+    // Headings
+    if (trimmed.startsWith('### ')) {
+      flushList();
+      elements.push(
+        <h3 key={idx} className="font-display font-bold text-base text-slate-900 mt-3 mb-1">
+          {renderInlineMarkdown(trimmed.substring(4))}
+        </h3>
+      );
+      return;
+    }
+    if (trimmed.startsWith('## ')) {
+      flushList();
+      elements.push(
+        <h2 key={idx} className="font-display font-bold text-lg text-slate-900 mt-4 mb-1.5">
+          {renderInlineMarkdown(trimmed.substring(3))}
+        </h2>
+      );
+      return;
+    }
+    if (trimmed.startsWith('# ')) {
+      flushList();
+      elements.push(
+        <h1 key={idx} className="font-display font-extrabold text-xl text-slate-900 mt-4 mb-2">
+          {renderInlineMarkdown(trimmed.substring(2))}
+        </h1>
+      );
+      return;
+    }
+
+    // Bullet lists (- or * )
+    if (/^[-*]\s+/.test(trimmed)) {
+      if (isNumberedList) flushList();
+      isNumberedList = false;
+      currentList.push(trimmed.replace(/^[-*]\s+/, ''));
+      return;
+    }
+
+    // Numbered lists (1. , 2. )
+    if (/^\d+\.\s+/.test(trimmed)) {
+      if (!isNumberedList) flushList();
+      isNumberedList = true;
+      currentList.push(trimmed.replace(/^\d+\.\s+/, ''));
+      return;
+    }
+
+    // Regular paragraph
+    flushList();
+    elements.push(
+      <p key={idx} className="text-slate-800 leading-relaxed">
+        {renderInlineMarkdown(trimmed)}
+      </p>
+    );
+  });
+
+  flushList();
+  return elements;
+}
+
+/**
+ * Message Content Formatter that breaks content into text and code blocks
+ */
+function FormattedMessageContent({ content, onCopyCode, copiedId, msgId }) {
+  if (!content) return null;
+
+  // Split by fenced code blocks: ```lang\ncode\n```
+  const parts = [];
+  const regex = /```([a-zA-Z0-9_-]*)\r?\n([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', value: content.substring(lastIndex, match.index) });
+    }
+    parts.push({
+      type: 'code',
+      language: match[1] || 'javascript',
+      code: match[2].trim(),
+      blockId: `${msgId}-block-${parts.length}`
+    });
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push({ type: 'text', value: content.substring(lastIndex) });
+  }
+
+  return (
+    <div className="space-y-3 font-sans leading-relaxed">
+      {parts.map((part, pIdx) => {
+        if (part.type === 'code') {
+          return (
+            <div key={pIdx} className="my-3 bg-[#0F172A] text-slate-200 rounded-xl overflow-hidden border border-slate-700/80 shadow-lg">
+              <div className="flex items-center justify-between px-4 py-2 bg-slate-900/90 border-b border-slate-800 text-xs font-mono text-slate-400">
+                <span className="font-semibold text-blue-400 uppercase tracking-wider text-[11px]">{part.language}</span>
+                <button
+                  onClick={() => onCopyCode(part.code, part.blockId)}
+                  className="flex items-center gap-1.5 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors cursor-pointer text-xs"
+                >
+                  {copiedId === part.blockId ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400 font-semibold">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Code</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <pre className="p-4 font-mono text-xs overflow-x-auto custom-scrollbar leading-relaxed">
+                <code>{part.code}</code>
+              </pre>
+            </div>
+          );
+        }
+
+        return (
+          <div key={pIdx} className="space-y-2">
+            {renderMarkdownParagraphs(part.value)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function ChatView({ 
   messages = [], 
   onSelectSuggestion, 
-  isThinking,
-  activeSession = null,
-  onSaveSession,
-  onNewChat,
-  onOpenSavedDrawer
+  isThinking
 }) {
   const [copiedId, setCopiedId] = useState(null);
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [customTitle, setCustomTitle] = useState('');
   const chatBottomRef = useRef(null);
 
   // Auto-scroll on new messages or thinking state
@@ -39,26 +240,6 @@ export default function ChatView({
       chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isThinking]);
-
-  // Set default title when save modal opens
-  const handleOpenSaveModal = () => {
-    if (activeSession?.title) {
-      setCustomTitle(activeSession.title);
-    } else {
-      const firstUserMsg = messages.find(m => m.sender === 'user')?.text || '';
-      const autoTitle = firstUserMsg.length > 40 ? `${firstUserMsg.substring(0, 40)}...` : (firstUserMsg || 'AI Mentorship Session');
-      setCustomTitle(autoTitle);
-    }
-    setIsSaveModalOpen(true);
-  };
-
-  const handleConfirmSave = (e) => {
-    e?.preventDefault();
-    if (onSaveSession) {
-      onSaveSession(customTitle.trim() || 'AI Mentorship Session');
-    }
-    setIsSaveModalOpen(false);
-  };
 
   const handleCopyCode = (code, id) => {
     navigator.clipboard.writeText(code);
@@ -135,71 +316,6 @@ export default function ChatView({
         /* Chat Thread Container */
         <div className="w-full flex flex-col items-center px-4 md:px-8 py-4 pb-36">
           <div className="w-full max-w-3xl flex flex-col gap-5">
-            
-            {/* Top Active Session Sticky Bar */}
-            <div className="sticky top-2 z-20 bg-white/90 backdrop-blur-xl border border-white/90 rounded-2xl p-3 shadow-md flex items-center justify-between gap-3 animate-in fade-in">
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className={`p-2 rounded-xl shrink-0 ${activeSession ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
-                  {activeSession ? <BookmarkCheck className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-xs md:text-sm text-slate-900 truncate">
-                      {activeSession ? activeSession.title : 'Active Mentorship Conversation'}
-                    </h3>
-                    {activeSession ? (
-                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">
-                        Saved Session
-                      </span>
-                    ) : (
-                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-mono font-bold">
-                        Unsaved
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[10px] font-mono text-slate-500">
-                    {messages.length} {messages.length === 1 ? 'message' : 'messages'} {activeSession?.date ? `• ${activeSession.date}` : ''}
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={handleOpenSaveModal}
-                  className={`
-                    flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer
-                    ${activeSession
-                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105'
-                    }
-                  `}
-                  title={activeSession ? "Rename/Update Session" : "Save this Chat"}
-                >
-                  {activeSession ? <Edit3 className="w-3.5 h-3.5 text-blue-600" /> : <Bookmark className="w-3.5 h-3.5" />}
-                  <span>{activeSession ? 'Update Title' : 'Save Session'}</span>
-                </button>
-
-                <button
-                  onClick={onNewChat}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
-                  title="Start Fresh Chat"
-                >
-                  <PlusCircle className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="hidden sm:inline">New Chat</span>
-                </button>
-
-                {onOpenSavedDrawer && (
-                  <button
-                    onClick={onOpenSavedDrawer}
-                    className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
-                    title="View Saved Sessions History"
-                  >
-                    <History className="w-4 h-4 text-blue-600" />
-                  </button>
-                )}
-              </div>
-            </div>
 
             {/* Messages Thread */}
             {messages.map((msg) => (
@@ -229,43 +345,64 @@ export default function ChatView({
                     </div>
 
                     <div className="flex flex-col gap-2.5 max-w-[90%] flex-1 min-w-0">
-                      <div className="glass-panel rounded-2xl rounded-tl-sm p-5 text-sm text-slate-800 leading-relaxed space-y-3">
-                        <div className="whitespace-pre-line font-sans">
-                          {msg.text}
-                        </div>
+                      <div className={`glass-panel rounded-2xl rounded-tl-sm p-5 text-sm leading-relaxed space-y-3 ${
+                        msg.isError ? 'bg-rose-50/90 border-rose-200 text-rose-900' : 'text-slate-800'
+                      }`}>
+                        
+                        {/* Intent / Service Tag Header */}
+                        {msg.intentLabel && !msg.isError && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2.5 py-0.5 rounded-md bg-blue-100/80 text-blue-700 font-mono text-[10px] font-bold">
+                              {msg.intentLabel}
+                            </span>
+                          </div>
+                        )}
 
-                        {/* Code Block if present */}
-                        {msg.codeSnippet && (
+                        {/* Formatted Markdown Content with code blocks */}
+                        <FormattedMessageContent
+                          content={msg.text}
+                          onCopyCode={handleCopyCode}
+                          copiedId={copiedId}
+                          msgId={msg.id}
+                        />
+
+                        {/* Fallback explicit codeSnippet if present and not in markdown */}
+                        {(msg.codeSnippet || msg.code_snippet || msg.code) && !msg.text?.includes('```') && (
                           <div className="mt-3 bg-[#0F172A] text-slate-200 rounded-xl overflow-hidden border border-slate-700/80 shadow-lg">
                             <div className="flex items-center justify-between px-4 py-2 bg-slate-900/90 border-b border-slate-800 text-xs font-mono text-slate-400">
-                              <span>{msg.codeLanguage || 'javascript'}</span>
+                              <span className="font-semibold text-blue-400 uppercase tracking-wider text-[11px]">{msg.codeLanguage || msg.language || 'code'}</span>
                               <button
-                                onClick={() => handleCopyCode(msg.codeSnippet, msg.id)}
-                                className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+                                onClick={() => handleCopyCode(msg.codeSnippet || msg.code_snippet || msg.code, `explicit-${msg.id}`)}
+                                className="flex items-center gap-1.5 hover:text-white px-2 py-0.5 rounded hover:bg-slate-800 transition-colors cursor-pointer text-xs"
                               >
-                                {copiedId === msg.id ? (
+                                {copiedId === `explicit-${msg.id}` ? (
                                   <>
                                     <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                    <span className="text-emerald-400">Copied!</span>
+                                    <span className="text-emerald-400 font-semibold">Copied!</span>
                                   </>
                                 ) : (
                                   <>
                                     <Copy className="w-3.5 h-3.5" />
-                                    <span>Copy</span>
+                                    <span>Copy Code</span>
                                   </>
                                 )}
                               </button>
                             </div>
                             <pre className="p-4 font-mono text-xs overflow-x-auto custom-scrollbar leading-relaxed">
-                              <code>{msg.codeSnippet}</code>
+                              <code>{msg.codeSnippet || msg.code_snippet || msg.code}</code>
                             </pre>
                           </div>
                         )}
                       </div>
 
-                      {/* Confidence & Action Details */}
+                      {/* Confidence & Timestamp Details */}
                       <div className="flex items-center justify-between px-1">
-                        {msg.confidence ? (
+                        {msg.isError ? (
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-rose-600 font-semibold">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span>Backend Offline or Connection Error</span>
+                          </div>
+                        ) : msg.confidence ? (
                           <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-600 font-semibold">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>{msg.confidence}</span>
@@ -278,7 +415,7 @@ export default function ChatView({
                           <button 
                             onClick={() => handleCopyCode(msg.text, `msg-txt-${msg.id}`)}
                             className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors cursor-pointer" 
-                            title="Copy Response"
+                            title="Copy Response Text"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
@@ -298,7 +435,7 @@ export default function ChatView({
                 </div>
                 <div className="glass-panel thinking-pulse rounded-2xl rounded-tl-sm px-5 py-4 flex items-center gap-3">
                   <span className="text-sm font-semibold text-blue-600 font-display">
-                    SKILLONIK AI is analyzing &amp; structuring response...
+                    SKILLONIK AI is analyzing knowledge base &amp; formulating response...
                   </span>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce"></div>
@@ -311,67 +448,6 @@ export default function ChatView({
 
             {/* Bottom scroll target */}
             <div ref={chatBottomRef} />
-          </div>
-        </div>
-      )}
-
-      {/* Save Session Modal */}
-      {isSaveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
-                  <Bookmark className="w-5 h-5" />
-                </div>
-                <h3 className="font-display font-bold text-lg text-slate-900">
-                  {activeSession ? 'Update Session Title' : 'Save Mentorship Session'}
-                </h3>
-              </div>
-              <button 
-                onClick={() => setIsSaveModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Save this entire conversation thread, including code snippets, roadmaps, and interview questions to your persistent library.
-            </p>
-
-            <form onSubmit={handleConfirmSave} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Session Title
-                </label>
-                <input
-                  type="text"
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder="e.g. MERN Full Stack Deployment Guide"
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm text-slate-800 transition-all"
-                  autoFocus
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSaveModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer"
-                >
-                  {activeSession ? 'Update Session' : 'Save to Library'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

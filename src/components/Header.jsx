@@ -1,12 +1,9 @@
 import React from 'react';
 import { 
   Menu, 
-  History, 
   Sparkles, 
   Zap, 
-  LogIn,
-  Bookmark,
-  BookmarkCheck
+  LogIn
 } from 'lucide-react';
 
 export default function Header({ 
@@ -51,22 +48,6 @@ export default function Header({
           <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
           <span>Placement Mode Active</span>
         </div>
-
-        {/* Quick Save in Header if in chat and messages exist */}
-        {currentView === 'chat' && messagesCount > 0 && onSaveSession && (
-          <button
-            onClick={() => onSaveSession()}
-            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
-              activeSession
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
-            title={activeSession ? "Session Saved (Click to update)" : "Save current chat session"}
-          >
-            {activeSession ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
-            <span>{activeSession ? 'Saved' : 'Save Session'}</span>
-          </button>
-        )}
 
         {/* User Auth Status / Sign In Button */}
         {user ? (
