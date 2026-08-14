@@ -1,19 +1,20 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 /**
- * Helper to retrieve current auth headers
+ * Helper to retrieve current auth headers for a specific email or active user
  */
-function getAuthHeaders() {
+function getAuthHeaders(overrideEmail = null) {
   const token = localStorage.getItem('skillonik_token') || sessionStorage.getItem('skillonik_token');
   const userStr = localStorage.getItem('skillonik_user') || sessionStorage.getItem('skillonik_user');
-  let userEmail = '';
-  try {
-    if (userStr) {
+  let userEmail = overrideEmail || '';
+
+  if (!userEmail && userStr) {
+    try {
       const user = JSON.parse(userStr);
       userEmail = user.email || '';
+    } catch {
+      userEmail = '';
     }
-  } catch {
-    userEmail = '';
   }
 
   const headers = {
@@ -24,20 +25,28 @@ function getAuthHeaders() {
     headers['Authorization'] = `Bearer ${token}`;
   }
   if (userEmail) {
-    headers['X-User-Email'] = userEmail;
+    headers['X-User-Email'] = userEmail.trim().toLowerCase();
   }
 
-  return headers;
+  return { headers, userEmail: userEmail.trim().toLowerCase() };
 }
 
 // =====================================================
-// GET ALL SAVED SESSIONS FROM MONGODB DATABASE
+// GET SAVED SESSIONS FROM MONGODB FOR LOGGED-IN EMAIL
 // =====================================================
-export async function fetchSessionsFromDB() {
+export async function fetchSessionsFromDB(email = null) {
+  const { headers, userEmail } = getAuthHeaders(email);
+  const targetEmail = (email || userEmail || '').trim().toLowerCase();
+
+  if (!targetEmail) {
+    return [];
+  }
+
   try {
-    const response = await fetch(`${API_URL}/api/sessions`, {
+    const url = `${API_URL}/api/sessions${targetEmail ? `?email=${encodeURIComponent(targetEmail)}` : ''}`;
+    const response = await fetch(url, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: headers,
     });
 
     if (!response.ok) {
@@ -46,9 +55,16 @@ export async function fetchSessionsFromDB() {
     }
 
     const data = await response.json();
-    return Array.isArray(data) ? data : (data.sessions || []);
+    const list = Array.isArray(data) ? data : (data.sessions || []);
+
+    // Filter strictly by user email if present on document
+    return list.filter(item => {
+      if (!item) return false;
+      if (!item.user_email) return true; // Legacy document
+      return item.user_email.toLowerCase() === targetEmail;
+    });
   } catch (error) {
-    console.warn('MongoDB session fetch warning (falling back to local cache):', error.message);
+    console.warn('MongoDB session fetch warning (falling back to user local cache):', error.message);
     throw error;
   }
 }
@@ -56,12 +72,20 @@ export async function fetchSessionsFromDB() {
 // =====================================================
 // SAVE / CREATE NEW SESSION IN MONGODB DATABASE
 // =====================================================
-export async function createSessionInDB(sessionData) {
+export async function createSessionInDB(sessionData, email = null) {
+  const { headers, userEmail } = getAuthHeaders(email);
+  const targetEmail = (email || userEmail || sessionData?.user_email || '').trim().toLowerCase();
+
+  const payload = {
+    ...sessionData,
+    user_email: targetEmail || undefined,
+  };
+
   try {
     const response = await fetch(`${API_URL}/api/sessions`, {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(sessionData),
+      headers: headers,
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -80,20 +104,28 @@ export async function createSessionInDB(sessionData) {
 // =====================================================
 // UPDATE EXISTING SESSION IN MONGODB DATABASE
 // =====================================================
-export async function updateSessionInDB(sessionId, sessionData) {
+export async function updateSessionInDB(sessionId, sessionData, email = null) {
+  const { headers, userEmail } = getAuthHeaders(email);
+  const targetEmail = (email || userEmail || sessionData?.user_email || '').trim().toLowerCase();
+
+  const payload = {
+    ...sessionData,
+    user_email: targetEmail || undefined,
+  };
+
   try {
     const response = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(sessionData),
+      headers: headers,
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       // Fallback try PATCH
       const patchResponse = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(sessionData),
+        headers: headers,
+        body: JSON.stringify(payload),
       });
 
       if (!patchResponse.ok) {
@@ -114,11 +146,13 @@ export async function updateSessionInDB(sessionId, sessionData) {
 // =====================================================
 // DELETE SESSION FROM MONGODB DATABASE
 // =====================================================
-export async function deleteSessionFromDB(sessionId) {
+export async function deleteSessionFromDB(sessionId, email = null) {
+  const { headers } = getAuthHeaders(email);
+
   try {
     const response = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: headers,
     });
 
     if (!response.ok) {

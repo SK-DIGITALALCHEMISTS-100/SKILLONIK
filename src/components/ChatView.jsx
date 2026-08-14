@@ -229,10 +229,14 @@ function FormattedMessageContent({ content, onCopyCode, copiedId, msgId }) {
 export default function ChatView({ 
   messages = [], 
   onSelectSuggestion, 
-  isThinking
+  isThinking,
+  user = null
 }) {
   const [copiedId, setCopiedId] = useState(null);
   const chatBottomRef = useRef(null);
+
+  // Compute personalized greeting name
+  const displayName = user?.name || user?.username || (user?.email ? user.email.split('@')[0] : 'There');
 
   // Auto-scroll on new messages or thinking state
   useEffect(() => {
@@ -272,7 +276,7 @@ export default function ChatView({
 
             {/* Main Greeting */}
             <h1 className="font-display text-4xl md:text-5xl font-extrabold text-slate-800 tracking-tight mb-3">
-              Hello, There <span className="inline-block animate-bounce">👋</span>
+              Hello, {displayName} <span className="inline-block animate-bounce">👋</span>
             </h1>
             
             <p className="text-slate-600 text-base md:text-lg leading-relaxed max-w-lg mb-8">

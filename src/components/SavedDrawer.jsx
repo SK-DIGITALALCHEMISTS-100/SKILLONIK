@@ -1,13 +1,15 @@
-import { Bookmark, X, MessageSquare, Trash2, PlusCircle } from 'lucide-react';
+import { Bookmark, X, MessageSquare, Trash2, PlusCircle, LogIn } from 'lucide-react';
 
 export default function SavedDrawer({ 
   isOpen, 
   onClose, 
   savedChats = [], 
-  activeSessionId = null,
+  activeSessionId = null, 
   onLoadChat, 
   onDeleteChat,
-  onNewChat
+  onNewChat,
+  user = null,
+  onOpenLogin
 }) {
   if (!isOpen) return null;
 
@@ -26,7 +28,7 @@ export default function SavedDrawer({
                 Saved Sessions
               </h3>
               <p className="text-[11px] font-mono text-slate-400">
-                {savedChats.length} {savedChats.length === 1 ? 'session' : 'sessions'} stored
+                {user ? `📧 ${user.email}` : `${savedChats.length} stored sessions`}
               </p>
             </div>
           </div>
@@ -53,14 +55,36 @@ export default function SavedDrawer({
 
         {/* Saved Chats List */}
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
-          {savedChats.length === 0 ? (
+          {!user ? (
+            <div className="text-center py-16 px-4 flex flex-col items-center">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                <Bookmark className="w-6 h-6" />
+              </div>
+              <h4 className="font-bold text-sm text-slate-800 mb-1">Sign In to Access Your Sessions</h4>
+              <p className="text-slate-400 text-xs max-w-xs leading-relaxed mb-4">
+                Saved sessions are tied to your personal email ID in the database.
+              </p>
+              {onOpenLogin && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenLogin();
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign In with Email</span>
+                </button>
+              )}
+            </div>
+          ) : savedChats.length === 0 ? (
             <div className="text-center py-16 px-4 flex flex-col items-center">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mb-3">
                 <Bookmark className="w-6 h-6" />
               </div>
-              <h4 className="font-bold text-sm text-slate-800 mb-1">No Saved Sessions Yet</h4>
+              <h4 className="font-bold text-sm text-slate-800 mb-1">No Saved Sessions for {user.email}</h4>
               <p className="text-slate-400 text-xs max-w-xs leading-relaxed">
-                Click <span className="font-semibold text-blue-600">"Save Session"</span> in the chat window to store important AI advice, code breakdowns, and roadmaps!
+                Your conversations will be automatically saved here and synced across your devices.
               </p>
             </div>
           ) : (
