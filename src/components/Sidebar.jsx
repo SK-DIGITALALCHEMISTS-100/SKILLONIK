@@ -38,6 +38,18 @@ export default function Sidebar({
     if (setIsMobileOpen) setIsMobileOpen(false);
   };
 
+  const handleLogoutClick = () => {
+    if (onLogout) {
+      onLogout();
+    }
+    if (setCurrentView) {
+      setCurrentView('home-landing');
+    }
+    if (setIsMobileOpen) {
+      setIsMobileOpen(false);
+    }
+  };
+
   return (
     <aside 
       className={`
@@ -133,7 +145,7 @@ export default function Sidebar({
               </div>
             </div>
             <button
-              onClick={onLogout}
+              onClick={handleLogoutClick}
               className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
               title="Sign Out"
             >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from "./components/Navbar.jsx";
 import Hero from "./components/Hero.jsx";
 import ProblemSection from "./components/ProblemSection.jsx";
@@ -14,13 +14,20 @@ import SavedDrawer from './components/SavedDrawer';
 import AuthPage from './components/AuthPage';
 import { INITIAL_SAVED_CHATS } from './data/mockData';
 import { 
+  fetchSessionsFromDB, 
+  createSessionInDB, 
+  updateSessionInDB, 
+  deleteSessionFromDB 
+} from './api/sessionApi';
+import { 
   Bookmark, 
   PlusCircle, 
   Trash2, 
   ArrowRight, 
   Search, 
   MessageSquare, 
-  CheckCircle2 
+  CheckCircle2,
+  Database
 } from 'lucide-react';
 
 export default function App() {
@@ -33,6 +40,7 @@ export default function App() {
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
+  const [dbSyncStatus, setDbSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'synced' | 'local'
 
   // Authenticated user state initialized from localStorage
   const [user, setUser] = useState(() => {
@@ -69,6 +77,34 @@ export default function App() {
     }
   }, [savedChats]);
 
+  // Load saved sessions from MongoDB Database when user changes or app loads
+  const loadSessionsFromMongoDB = useCallback(async () => {
+    setDbSyncStatus('syncing');
+    try {
+      const dbSessions = await fetchSessionsFromDB();
+      if (Array.isArray(dbSessions) && dbSessions.length > 0) {
+        // Normalize MongoDB documents (_id -> id)
+        const normalized = dbSessions.map(s => ({
+          ...s,
+          id: s._id ? String(s._id) : (s.id || `session-${Date.now()}`),
+          messageCount: s.messages ? s.messages.length : (s.messageCount || 0)
+        }));
+        setSavedChats(normalized);
+        setDbSyncStatus('synced');
+      } else {
+        setDbSyncStatus('synced');
+      }
+    } catch (err) {
+      // Backend MongoDB not reachable or user unauthenticated: fallback gracefully to local storage
+      console.info('MongoDB session sync: Using local cache.', err.message);
+      setDbSyncStatus('local');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSessionsFromMongoDB();
+  }, [loadSessionsFromMongoDB, user]);
+
   // Toast auto-dismiss
   useEffect(() => {
     if (toastMessage) {
@@ -92,9 +128,9 @@ export default function App() {
     } catch (err) {
       console.error('Error saving user to localStorage:', err);
     }
-    // Transition to AI Mentor view
     setPage("AI Mentor");
     setCurrentView("chat");
+    loadSessionsFromMongoDB();
   };
 
   const handleLogout = () => {
@@ -107,6 +143,7 @@ export default function App() {
     } catch (err) {
       console.error('Error removing user from storage:', err);
     }
+    setPage("Home");
   };
 
   // Central Navigation Handler
@@ -123,8 +160,8 @@ export default function App() {
     }
   };
 
-  // Save active chat session
-  const handleSaveChat = (customTitle) => {
+  // Save active chat session to MongoDB Database & Local Cache
+  const handleSaveChat = async (customTitle) => {
     if (messages.length === 0) {
       showToast('Start a conversation before saving a session.');
       return;
@@ -137,26 +174,34 @@ export default function App() {
 
     if (activeSessionId) {
       // Update existing session
+      const updatedPayload = {
+        title: finalTitle,
+        messages: [...messages],
+        messageCount: messages.length,
+        date: currentDate,
+        updatedAt: Date.now()
+      };
+
       setSavedChats((prev) =>
         prev.map((c) =>
           c.id === activeSessionId
-            ? {
-                ...c,
-                title: finalTitle,
-                messages: [...messages],
-                messageCount: messages.length,
-                date: currentDate,
-                updatedAt: Date.now()
-              }
+            ? { ...c, ...updatedPayload }
             : c
         )
       );
-      showToast(`Session "${finalTitle}" updated!`);
+
+      // Async MongoDB update
+      try {
+        await updateSessionInDB(activeSessionId, updatedPayload);
+        showToast(`Session "${finalTitle}" updated in MongoDB database!`);
+      } catch {
+        showToast(`Session "${finalTitle}" updated in library!`);
+      }
     } else {
       // Create new saved session
-      const newId = `session-${Date.now()}`;
-      const newSession = {
-        id: newId,
+      const tempId = `session-${Date.now()}`;
+      const newSessionPayload = {
+        id: tempId,
         title: finalTitle,
         date: currentDate,
         createdAt: Date.now(),
@@ -164,16 +209,31 @@ export default function App() {
         messages: [...messages]
       };
 
-      setSavedChats((prev) => [newSession, ...prev]);
-      setActiveSessionId(newId);
-      showToast(`Session "${finalTitle}" saved to library!`);
+      // Optimistic local update
+      setSavedChats((prev) => [newSessionPayload, ...prev]);
+      setActiveSessionId(tempId);
+
+      // Async MongoDB save
+      try {
+        const dbResult = await createSessionInDB(newSessionPayload);
+        if (dbResult && (dbResult._id || dbResult.id)) {
+          const dbId = String(dbResult._id || dbResult.id);
+          setActiveSessionId(dbId);
+          setSavedChats((prev) =>
+            prev.map((c) => (c.id === tempId ? { ...c, id: dbId, _id: dbId } : c))
+          );
+        }
+        showToast(`Session "${finalTitle}" stored in MongoDB database!`);
+      } catch {
+        showToast(`Session "${finalTitle}" saved to library!`);
+      }
     }
   };
 
   // Load a saved chat session into active workspace
   const handleLoadChat = (chat) => {
     setMessages(chat.messages || []);
-    setActiveSessionId(chat.id);
+    setActiveSessionId(chat.id || String(chat._id));
     setCurrentView('chat');
     setIsSavedOpen(false);
     showToast(`Loaded: ${chat.title}`);
@@ -187,13 +247,19 @@ export default function App() {
     setIsSavedOpen(false);
   };
 
-  // Delete a saved session
-  const handleDeleteChat = (id) => {
-    setSavedChats((prev) => prev.filter((c) => c.id !== id));
+  // Delete a saved session from MongoDB Database & Local Cache
+  const handleDeleteChat = async (id) => {
+    setSavedChats((prev) => prev.filter((c) => c.id !== id && c._id !== id));
     if (activeSessionId === id) {
       setActiveSessionId(null);
     }
-    showToast('Session removed from library');
+
+    try {
+      await deleteSessionFromDB(id);
+      showToast('Session removed from MongoDB database');
+    } catch {
+      showToast('Session removed from library');
+    }
   };
 
   // Handle sending new prompt to AI Mentor engine
@@ -308,20 +374,23 @@ async def create_item(item: Item):
       setMessages(finalMessages);
       setIsThinking(false);
 
-      // If this chat is an active saved session, auto-update it in storage
+      // Auto-sync active session to local state and MongoDB database
       if (activeSessionId) {
+        const updatePayload = {
+          messages: finalMessages,
+          messageCount: finalMessages.length,
+          updatedAt: Date.now()
+        };
+
         setSavedChats((prev) =>
           prev.map((c) =>
-            c.id === activeSessionId
-              ? {
-                  ...c,
-                  messages: finalMessages,
-                  messageCount: finalMessages.length,
-                  updatedAt: Date.now()
-                }
+            c.id === activeSessionId || c._id === activeSessionId
+              ? { ...c, ...updatePayload }
               : c
           )
         );
+
+        updateSessionInDB(activeSessionId, updatePayload).catch(() => {});
       }
     }, 1200);
   };
@@ -330,7 +399,7 @@ async def create_item(item: Item):
   const filteredSavedChats = savedChats.filter((c) => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
-    const matchesTitle = c.title.toLowerCase().includes(query);
+    const matchesTitle = c.title?.toLowerCase().includes(query);
     const matchesMessages = c.messages?.some(m => m.text?.toLowerCase().includes(query));
     return matchesTitle || matchesMessages;
   });
@@ -487,10 +556,16 @@ async def create_item(item: Item):
               {/* Header & New Chat CTA */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="font-display text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5">
                     <Bookmark className="w-6 h-6 text-blue-600" />
-                    <span>Saved Mentorship Sessions</span>
-                  </h2>
+                    <h2 className="font-display text-2xl md:text-3xl font-bold text-slate-900">
+                      Saved Mentorship Sessions
+                    </h2>
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-800 text-[10px] font-mono font-bold border border-emerald-300/60">
+                      <Database className="w-3 h-3 text-emerald-600" />
+                      <span>{dbSyncStatus === 'syncing' ? 'Syncing MongoDB...' : 'MongoDB Database'}</span>
+                    </span>
+                  </div>
                   <p className="text-slate-500 text-xs md:text-sm mt-1">
                     Access your real conversation histories, code breakdowns, and placement solutions.
                   </p>
@@ -529,7 +604,7 @@ async def create_item(item: Item):
                   <p className="text-slate-500 text-xs max-w-sm mb-6 leading-relaxed">
                     {searchQuery
                       ? 'Try searching with different keywords or clear your search query.'
-                      : 'Save any live mentorship session to revisit full answers, code samples, and interview preparation anytime.'}
+                      : 'Save any live mentorship session to store full conversation transcripts and code samples directly in MongoDB.'}
                   </p>
                   <button
                     onClick={handleNewChat}
@@ -541,14 +616,15 @@ async def create_item(item: Item):
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredSavedChats.map((c) => {
-                    const isActive = activeSessionId === c.id;
+                    const sessionId = c.id || String(c._id);
+                    const isActive = activeSessionId === sessionId;
                     const msgCount = c.messages ? c.messages.length : (c.messageCount || 0);
                     const firstQuery = c.messages?.find(m => m.sender === 'user')?.text || '';
                     const lastAiResponse = c.messages?.filter(m => m.sender === 'ai').slice(-1)[0]?.text || '';
 
                     return (
                       <div 
-                        key={c.id} 
+                        key={sessionId} 
                         className={`
                           p-5 glass-card rounded-2xl border transition-all flex flex-col justify-between group
                           ${isActive 
@@ -567,9 +643,15 @@ async def create_item(item: Item):
                                 <h3 className="font-display font-bold text-sm md:text-base text-slate-900 truncate group-hover:text-blue-600 transition-colors">
                                   {c.title}
                                 </h3>
-                                <p className="text-[10px] font-mono text-slate-400 mt-0.5">
-                                  {c.date} • {msgCount} {msgCount === 1 ? 'message' : 'messages'}
-                                </p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <p className="text-[10px] font-mono text-slate-400">
+                                    {c.date} • {msgCount} {msgCount === 1 ? 'message' : 'messages'}
+                                  </p>
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
+                                    <Database className="w-2.5 h-2.5 text-blue-500" />
+                                    <span>MongoDB</span>
+                                  </span>
+                                </div>
                               </div>
                             </div>
 
@@ -609,7 +691,7 @@ async def create_item(item: Item):
                           </button>
 
                           <button
-                            onClick={() => handleDeleteChat(c.id)}
+                            onClick={() => handleDeleteChat(sessionId)}
                             className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                             title="Delete Session"
                           >

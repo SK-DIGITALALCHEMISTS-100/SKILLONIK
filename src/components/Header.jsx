@@ -86,16 +86,7 @@ export default function Header({
           </button>
         )}
 
-        {/* Saved Drawer Trigger */}
-        <button
-          onClick={onOpenSavedDrawer}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-slate-700 bg-white/80 hover:bg-white border border-white/90 rounded-xl transition-all relative cursor-pointer shadow-xs text-xs font-semibold"
-          title="Saved Sessions History"
-        >
-          <History className="w-4 h-4 text-blue-600" />
-          <span className="hidden sm:inline">History</span>
-          <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-        </button>
+       
       </div>
     </header>
   );
