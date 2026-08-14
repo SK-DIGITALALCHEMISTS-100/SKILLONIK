@@ -19,6 +19,7 @@ import {
   updateSessionInDB, 
   deleteSessionFromDB 
 } from './api/sessionApi';
+import { sendChatMessage } from './api/chatApi';
 import { 
   Bookmark, 
   PlusCircle, 
@@ -262,12 +263,15 @@ export default function App() {
     }
   };
 
-  // Handle sending new prompt to AI Mentor engine
-  const handleSendMessage = (msgObj) => {
+  // Handle sending new prompt/query to SKILLONIK AI Backend Engine
+  const handleSendMessage = async (msgObj) => {
+    const textQuery = (msgObj?.text || '').trim();
+    if (!textQuery && !msgObj?.file) return;
+
     const userMsg = {
       id: `msg-${Date.now()}`,
       sender: 'user',
-      text: msgObj.text || 'Analyze attached file',
+      text: textQuery || (msgObj.file ? `Analyze attached file: ${msgObj.file.name}` : ''),
       file: msgObj.file,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -278,95 +282,23 @@ export default function App() {
     setCurrentView('chat');
     setPage('AI Mentor');
 
-    // Simulate AI Mentor reasoning & response generation
-    setTimeout(() => {
-      let aiText = `Here is your SKILLONIK AI Mentor breakdown for: "${userMsg.text}"`;
-      let codeSnippet = null;
-      let codeLanguage = 'javascript';
-      const confidence = 'High Confidence - Verified Engineering Knowledge';
-
-      const textLower = userMsg.text.toLowerCase();
-
-      if (textLower.includes('mern') || textLower.includes('react') || textLower.includes('node') || textLower.includes('mongo')) {
-        aiText = `To build or structure a high-performance Full Stack MERN application, follow the clean 3-tier architecture:
-1. **Frontend (React + Tailwind)**: Modular component structure with state management via Context API or Zustand.
-2. **Backend (Express + Node.js)**: RESTful controllers, middleware authentication, and centralized error handlers.
-3. **Database (MongoDB Atlas)**: Mongoose schemas with indexed fields and aggregation pipelines.`;
-        
-        codeSnippet = `// Server Controller Example (controllers/authController.js)
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-
-exports.registerUser = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ error: 'User already exists' });
-
-    user = await User.create({ name, email, password });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    res.status(201).json({ success: true, token, user: { id: user._id, name, email } });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};`;
-      } else if (textLower.includes('fastapi') || textLower.includes('python')) {
-        aiText = `FastAPI relies on Python type hints and Pydantic for high-performance async APIs:
-- Automatic OpenAPI/Swagger documentation at \`/docs\`.
-- Asynchronous database drivers like \`asyncpg\` and \`SQLModel\` for maximum throughput.`;
-        codeLanguage = 'python';
-        codeSnippet = `from fastapi import FastAPI
-from pydantic import BaseModel
-
-app = FastAPI(title="SKILLONIK API")
-
-class Item(BaseModel):
-    name: str
-    price: float
-
-@app.post("/items/")
-async def create_item(item: Item):
-    return {"message": f"Item '{item.name}' created!", "data": item}`;
-      } else if (textLower.includes('tcs') || textLower.includes('interview') || textLower.includes('question') || textLower.includes('dsa') || textLower.includes('bfs')) {
-        aiText = `Here is a key technical concept frequently evaluated in TCS Digital & Infosys placement rounds:
-
-### Question: Explain Binary Tree Level Order Traversal (BFS)
-**Approach**: Use a Breadth-First Search (BFS) queue. Process nodes level-by-level using the queue size as the iteration limit.`;
-        codeSnippet = `function levelOrder(root) {
-  if (!root) return [];
-  const result = [];
-  const queue = [root];
-
-  while (queue.length > 0) {
-    const levelSize = queue.length;
-    const currentLevel = [];
-
-    for (let i = 0; i < levelSize; i++) {
-      const node = queue.shift();
-      currentLevel.push(node.val);
-      if (node.left) queue.push(node.left);
-      if (node.right) queue.push(node.right);
-    }
-    result.push(currentLevel);
-  }
-  return result;
-}`;
-      } else if (textLower.includes('rag') || textLower.includes('llm') || textLower.includes('ai')) {
-        aiText = `Retrieval-Augmented Generation (RAG) empowers LLMs with external knowledge bases:
-1. **Document Chunking**: Split documentation into 500-token chunks.
-2. **Embedding Generation**: Convert text chunks to vector embeddings using OpenAI or HuggingFace models.
-3. **Vector Storage**: Store in ChromaDB / Pinecone.
-4. **Context Injection**: Retrieve top-k nearest neighbors and inject into LLM prompt window.`;
-      }
+    try {
+      // Call backend FastAPI endpoint: POST /api/message
+      const backendResult = await sendChatMessage({
+        message: userMsg.text,
+        top_k: 2
+      });
 
       const aiMsg = {
-        id: `msg-${Date.now()}`,
+        id: `msg-${Date.now() + 1}`,
         sender: 'ai',
-        text: aiText,
-        codeSnippet,
-        codeLanguage,
-        confidence,
+        text: backendResult.answer,
+        intent: backendResult.intent,
+        intentLabel: backendResult.intentLabel,
+        confidence: backendResult.confidence,
+        scores: backendResult.scores,
+        codeSnippet: backendResult.codeSnippet,
+        codeLanguage: backendResult.codeLanguage,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
@@ -374,7 +306,7 @@ async def create_item(item: Item):
       setMessages(finalMessages);
       setIsThinking(false);
 
-      // Auto-sync active session to local state and MongoDB database
+      // Auto-sync or auto-create session in local state and MongoDB database
       if (activeSessionId) {
         const updatePayload = {
           messages: finalMessages,
@@ -384,15 +316,64 @@ async def create_item(item: Item):
 
         setSavedChats((prev) =>
           prev.map((c) =>
-            c.id === activeSessionId || c._id === activeSessionId
+            (c.id && c.id === activeSessionId) || (c._id && String(c._id) === String(activeSessionId))
               ? { ...c, ...updatePayload }
               : c
           )
         );
 
         updateSessionInDB(activeSessionId, updatePayload).catch(() => {});
+      } else {
+        // Automatically create and save session on the first message
+        const firstUserMsg = finalMessages.find(m => m.sender === 'user')?.text || 'Mentorship Session';
+        const sessionTitle = firstUserMsg.length > 40 ? `${firstUserMsg.substring(0, 40)}...` : firstUserMsg;
+        const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+        const tempId = `session-${Date.now()}`;
+
+        const newSessionPayload = {
+          id: tempId,
+          title: sessionTitle,
+          date: currentDate,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messageCount: finalMessages.length,
+          messages: finalMessages
+        };
+
+        // Optimistic local state update
+        setSavedChats((prev) => [newSessionPayload, ...prev]);
+        setActiveSessionId(tempId);
+
+        // Async MongoDB save
+        createSessionInDB(newSessionPayload)
+          .then((dbResult) => {
+            if (dbResult && (dbResult._id || dbResult.id)) {
+              const dbId = String(dbResult._id || dbResult.id);
+              setActiveSessionId(dbId);
+              setSavedChats((prev) =>
+                prev.map((c) => (c.id === tempId ? { ...c, id: dbId, _id: dbId } : c))
+              );
+            }
+          })
+          .catch(() => {});
       }
-    }, 1200);
+    } catch (err) {
+      console.error('Backend AI Chat Connection Failed:', err);
+
+      // Construct user-friendly error response bubble
+      const errorAiMsg = {
+        id: `msg-${Date.now() + 1}`,
+        sender: 'ai',
+        isError: true,
+        text: `### ⚠️ Backend Connection Notice\n\nUnable to reach the SKILLONIK AI Server on \`${import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"}\`.\n\n**Reason:** ${err.message || 'Network connection refused or server offline'}\n\nPlease start the FastAPI backend server with:\n\`\`\`bash\ncd e:\\SKILLONIK_BE\nuvicorn main:app --reload --port 8000\n\`\`\``,
+        confidence: 'Server Offline Warning',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setMessages([...nextMessagesWithUser, errorAiMsg]);
+      setIsThinking(false);
+      showToast('Backend offline. Please start backend on port 8000.');
+    }
   };
 
   // Filtered saved chats for the workspace view
@@ -524,10 +505,6 @@ async def create_item(item: Item):
               messages={messages}
               onSelectSuggestion={(promptText) => handleSendMessage({ text: promptText })}
               isThinking={isThinking}
-              activeSession={activeSession}
-              onSaveSession={handleSaveChat}
-              onNewChat={handleNewChat}
-              onOpenSavedDrawer={() => setIsSavedOpen(true)}
             />
             <ChatInput 
               onSendMessage={handleSendMessage}
