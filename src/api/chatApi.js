@@ -91,11 +91,10 @@ export async function sendChatMessage({ message, top_k = 2 }) {
 
     const data = await response.json();
 
-    // Determine confidence label
-    let confidenceLabel = 'Verified AI Response';
+    // Determine confidence if provided
+    let confidenceLabel = null;
     if (typeof data.confidence === 'number') {
-      const pct = Math.round(data.confidence * 100);
-      confidenceLabel = `${pct}% Match • ChromaDB RAG Knowledge`;
+      confidenceLabel = data.confidence;
     } else if (data.confidence) {
       confidenceLabel = String(data.confidence);
     }

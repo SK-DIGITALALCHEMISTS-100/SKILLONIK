@@ -79,6 +79,8 @@ export default function Hero({
             <span>Explore Roadmaps</span>
           </button>
 
+          
+
           {onBrowseProjects && (
             <button 
               className="btn-secondary"

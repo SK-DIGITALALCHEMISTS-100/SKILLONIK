@@ -4,7 +4,6 @@ import {
   Copy, 
   Check, 
   Code, 
-  CheckCircle2, 
   Sparkles, 
   Terminal, 
   Cpu, 
@@ -399,17 +398,12 @@ export default function ChatView({
                         )}
                       </div>
 
-                      {/* Confidence & Timestamp Details */}
+                      {/* Timestamp / Error Details */}
                       <div className="flex items-center justify-between px-1">
                         {msg.isError ? (
                           <div className="flex items-center gap-1.5 text-[10px] font-mono text-rose-600 font-semibold">
                             <AlertCircle className="w-3.5 h-3.5" />
                             <span>Backend Offline or Connection Error</span>
-                          </div>
-                        ) : msg.confidence ? (
-                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-600 font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>{msg.confidence}</span>
                           </div>
                         ) : (
                           <div className="text-[10px] font-mono text-slate-400">{msg.timestamp}</div>
@@ -439,7 +433,7 @@ export default function ChatView({
                 </div>
                 <div className="glass-panel thinking-pulse rounded-2xl rounded-tl-sm px-5 py-4 flex items-center gap-3">
                   <span className="text-sm font-semibold text-blue-600 font-display">
-                    SKILLONIK AI is analyzing knowledge base &amp; formulating response...
+                    SKILLONIK AI
                   </span>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce"></div>
