@@ -12,7 +12,7 @@ import RoadmapsView from './components/RoadmapsView';
 import ProjectsView from './components/ProjectsView';
 import SavedDrawer from './components/SavedDrawer';
 import AuthPage from './components/AuthPage';
-import { INITIAL_SAVED_CHATS } from './data/mockData';
+import InterviewPreparation from './components/InterviewPreparation';
 import { 
   fetchSessionsFromDB, 
   createSessionInDB, 
@@ -478,6 +478,20 @@ export default function App() {
               onSelectPrompt={(prompt) => handleSendMessage({ text: prompt })}
             />
           )}
+
+          {(page === "Interview Preparation" || page === "interview_prepration") && (
+            <div className="py-6 min-h-[calc(100vh-140px)]">
+              <InterviewPreparation 
+                onAskMentor={(prompt) => {
+                  setPage("AI Mentor");
+                  setCurrentView("chat");
+                  handleSendMessage({ text: prompt });
+                }}
+                onNavigateHome={() => setPage("Home")}
+                user={user}
+              />
+            </div>
+          )}
         </main>
 
         <Footer />
@@ -555,6 +569,19 @@ export default function App() {
           <ProjectsView 
             onSelectTopicPrompt={(prompt) => handleSendMessage({ text: prompt })}
           />
+        )}
+
+        {currentView === 'interview_prep' && (
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar pb-32">
+            <InterviewPreparation 
+              onAskMentor={(prompt) => {
+                setCurrentView("chat");
+                handleSendMessage({ text: prompt });
+              }}
+              onNavigateHome={() => setPage("Home")}
+              user={user}
+            />
+          </div>
         )}
 
         {/* Saved Sessions Workspace View */}

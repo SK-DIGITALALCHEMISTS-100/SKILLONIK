@@ -8,7 +8,8 @@ import {
   Bookmark, 
   ArrowLeft,
   LogOut,
-  LogIn
+  LogIn,
+  Award
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -23,6 +24,7 @@ export default function Sidebar({
 }) {
   const navItems = [
     { id: 'chat', label: 'AI Mentor Assistant', icon: MessageSquare },
+    { id: 'interview_prep', label: 'Interview Preparation', icon: Award, },
     { id: 'roadmaps', label: 'Learning Roadmaps', icon: Map },
     { id: 'projects', label: 'Project Blueprints', icon: Lightbulb },
     { id: 'saved', label: 'Saved Sessions', icon: Bookmark },
