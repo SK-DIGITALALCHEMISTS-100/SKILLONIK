@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from "./components/Navbar.jsx";
 import Hero from "./components/Hero.jsx";
+import HomeRoadmapsSection from "./components/HomeRoadmapsSection.jsx";
 import ProblemSection from "./components/ProblemSection.jsx";
 import SimplePage from "./components/SimplePage.jsx";
 import Footer from "./components/Footer.jsx";
@@ -445,7 +446,14 @@ export default function App() {
               <Hero 
                 onLogin={() => setPage("Login")}
                 onExplore={() => setPage("Login")}
-                onExploreRoadmaps={() => setPage("Roadmaps")}
+                onExploreRoadmaps={() => {
+                  const el = document.getElementById('home-roadmaps-section');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    setPage("Roadmaps");
+                  }
+                }}
                 onNavigate={handleNavigate}
                 onLaunchMentor={() => {
                   setPage("AI Mentor");
@@ -453,15 +461,30 @@ export default function App() {
                 }}
                 onBrowseProjects={() => setPage("Projects")}
               />
+              <HomeRoadmapsSection 
+                onSelectDomain={(domainId) => {
+                  setPage("Roadmaps");
+                }}
+                onSelectPrompt={(prompt) => {
+                  setPage("AI Mentor");
+                  setCurrentView("chat");
+                  handleSendMessage({ text: prompt });
+                }}
+              />
               <ProblemSection />
             </>
           )}
 
           {page === "Roadmaps" && (
-            <SimplePage 
-              page="Roadmaps" 
-              onSelectPrompt={(prompt) => handleSendMessage({ text: prompt })}
-            />
+            <div className="py-6 max-w-7xl mx-auto px-4">
+              <RoadmapsView 
+                onSelectTopicPrompt={(prompt) => {
+                  setPage("AI Mentor");
+                  setCurrentView("chat");
+                  handleSendMessage({ text: prompt });
+                }}
+              />
+            </div>
           )}
 
           {page === "Projects" && (

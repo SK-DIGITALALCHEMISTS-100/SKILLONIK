@@ -97,21 +97,9 @@ export default function Navbar({ page, onNavigate, setPage, user, onLogout }) {
                     <span>Launch AI Mentor Hub</span>
                   </button>
 
-                  <button
-                    onClick={() => navigateTo("Roadmaps")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
-                  >
-                    <Map className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>My Roadmaps</span>
-                  </button>
+                  
 
-                  <button
-                    onClick={() => navigateTo("Interview Preparation")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Interview Preparation</span>
-                  </button>
+                  
 
                   <div className="border-t border-slate-100 my-1"></div>
 

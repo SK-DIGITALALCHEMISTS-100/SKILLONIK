@@ -282,36 +282,7 @@ export default function ChatView({
               Your AI mentor for careers, projects and placements. How can I help you accelerate today?
             </p>
 
-            {/* Quick Prompt Suggestions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-2xl">
-              {INITIAL_SUGGESTIONS.slice(0, 4).map((item) => {
-                const IconComponent = getSuggestionIcon(item.id);
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => onSelectSuggestion(item.prompt)}
-                    className="p-4 rounded-2xl glass-card text-left flex items-start gap-3.5 border border-white/80 shadow-sm hover:border-blue-400 hover:shadow-md transition-all group cursor-pointer"
-                  >
-                    <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
-                      <IconComponent className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <h4 className="font-display font-bold text-xs text-slate-800 group-hover:text-blue-600 transition-colors truncate">
-                          {item.title}
-                        </h4>
-                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/70 text-blue-700 shrink-0">
-                          {item.badge}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-snug">
-                        {item.prompt}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+           
 
           </div>
         </div>
