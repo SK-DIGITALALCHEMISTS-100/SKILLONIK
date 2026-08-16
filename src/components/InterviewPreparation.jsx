@@ -405,28 +405,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
             </p>
           </div>
 
-          {/* Gamification Stats Quick Pill */}
-          <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
-            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/90 border border-slate-200 shadow-xs">
-              <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
-                <Trophy className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-mono font-bold text-slate-400">Total XP</p>
-                <p className="text-base font-display font-bold text-slate-900">{stats.totalXP} XP</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/90 border border-slate-200 shadow-xs">
-              <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-mono font-bold text-slate-400">Tests Done</p>
-                <p className="text-base font-display font-bold text-slate-900">{stats.totalTests} Rounds</p>
-              </div>
-            </div>
-          </div>
+         
         </div>
 
         {/* Configuration Panel: Difficulty & Mode Settings */}
