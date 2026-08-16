@@ -34,11 +34,9 @@ export default function Header({
         </span>
         <div>
           <h2 className="font-display font-bold text-slate-900 text-sm md:text-base leading-tight">
-            SKILLONIK AI Hub
+            SKILLONIK AI MENTOR
           </h2>
-          <p className="hidden sm:block text-[10px] text-slate-500 font-mono">
-            {activeSession ? `Active: ${activeSession.title}` : 'Enterprise Mentorship & Placement Engine'}
-          </p>
+          
         </div>
       </div>
 
