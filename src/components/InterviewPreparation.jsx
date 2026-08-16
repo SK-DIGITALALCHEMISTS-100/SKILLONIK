@@ -397,7 +397,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
               <span>SKILLONIK Placement Assessment Engine</span>
             </div>
             <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Technical Interview <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Preparation Hub</span>
+              Technical Interview <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Preparation</span>
             </h1>
             <p className="text-slate-600 text-sm md:text-base max-w-3xl leading-relaxed">
               Master technical interview rounds across 10 specialized software engineering domains. 
@@ -1401,16 +1401,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
                     </p>
                   </div>
 
-                  {/* AI Mentor Clarification Action */}
-                  <div className="flex items-center justify-end pt-2">
-                    <button
-                      onClick={() => handleAskMentorAboutQuestion(q, userChoice)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
-                      <span>Ask AI Mentor About This Question</span>
-                    </button>
-                  </div>
+                 
 
                 </div>
               );
