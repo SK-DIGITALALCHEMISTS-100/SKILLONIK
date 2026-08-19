@@ -45,17 +45,7 @@ export default function Navbar({ page, onNavigate, setPage, user, onLogout }) {
         {/* Auth & Action Buttons (Home placed before Sign In) */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* Home Button before Sign In */}
-          <button
-            onClick={() => navigateTo("Home")}
-            className={`hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-              page === "Home"
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-700 hover:text-blue-600 hover:bg-white/80'
-            }`}
-          >
-            <span>Home</span>
-          </button>
+          
 
          
 
@@ -89,13 +79,7 @@ export default function Navbar({ page, onNavigate, setPage, user, onLogout }) {
                     )}
                   </div>
 
-                  <button
-                    onClick={() => navigateTo("AI Mentor")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Launch AI Mentor Hub</span>
-                  </button>
+                 
 
                   
 
@@ -111,7 +95,7 @@ export default function Navbar({ page, onNavigate, setPage, user, onLogout }) {
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Sign Out</span>
+                    <span>Log Out</span>
                   </button>
                 </div>
               )}
@@ -119,13 +103,7 @@ export default function Navbar({ page, onNavigate, setPage, user, onLogout }) {
           ) : (
             /* Unauthenticated Buttons: Sign In & Sign Up */
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigateTo("Login")}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-white/80 font-bold text-xs transition-all cursor-pointer"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </button>
+              
 
               <button
                 onClick={() => navigateTo("Signup")}
