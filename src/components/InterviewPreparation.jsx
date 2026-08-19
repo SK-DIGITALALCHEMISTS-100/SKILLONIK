@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import logo from "../assets/logo.png";
 import { 
   DOMAINS, 
   DIFFICULTY_LEVELS, 
   QUESTION_BANK, 
   BADGE_REWARDS 
 } from '../data/interviewQuestions';
+import { 
+  fetchLatestInterviewAssessment, 
+  saveInterviewAssessment 
+} from '../api/interviewApi';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -33,7 +38,9 @@ import {
   Network, 
   Brain,
   MessageSquare,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Printer,
+  X
 } from 'lucide-react';
 
 // Domain icon mapper component
@@ -72,12 +79,19 @@ export default function InterviewPreparation({ onAskMentor, onNavigateHome, user
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [lastCompletedResult, setLastCompletedResult] = useState(null);
+  const [dbSaveStatus, setDbSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
   
   // Review Filter State
   const [reviewFilter, setReviewFilter] = useState('all'); // 'all' | 'incorrect' | 'correct' | 'flagged'
 
   // Confetti / Celebration state for high scores
   const [showCelebration, setShowCelebration] = useState(false);
+
+  // Assessment Start Modal State & History
+  const [startModalDomain, setStartModalDomain] = useState(null);
+  const [domainStatusLoading, setDomainStatusLoading] = useState(false);
+  const [attendedExamData, setAttendedExamData] = useState(null);
 
   // User Gamification Profile in LocalStorage
   const [stats, setStats] = useState(() => {
@@ -129,9 +143,10 @@ export default function InterviewPreparation({ onAskMentor, onNavigateHome, user
 
   // Auto-submit when time expires
   const handleAutoSubmit = () => {
-    setEndTime(Date.now());
+    const end = Date.now();
+    setEndTime(end);
     setViewState('result');
-    calculateAndSaveResults(userAnswers);
+    calculateAndSaveResults(userAnswers, true, end);
   };
 
   // Countdown Timer Engine
@@ -184,6 +199,45 @@ export default function InterviewPreparation({ onAskMentor, onNavigateHome, user
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewState, currentIndex, currentQuestion, activeQuestions]);
 
+  // Open Start Modal for a domain and check MongoDB interview records
+  const handleOpenDomainModal = async (dom) => {
+    setSelectedDomainId(dom.id);
+    setStartModalDomain(dom);
+    setDomainStatusLoading(true);
+    setAttendedExamData(null);
+
+    let activeEmail = user?.email || (typeof user === 'string' && user.includes('@') ? user : null);
+    if (!activeEmail) {
+      try {
+        const storedUser = localStorage.getItem('skillonik_user') || sessionStorage.getItem('skillonik_user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          activeEmail = parsed.email || parsed.user_email || null;
+        }
+      } catch {}
+    }
+
+    try {
+      const res = await fetchLatestInterviewAssessment(dom.id, activeEmail);
+      console.log(`[Interview Modal] MongoDB record for ${dom.id}:`, res);
+      setAttendedExamData(res);
+    } catch (e) {
+      console.error('Error fetching interview status from MongoDB:', e);
+      setAttendedExamData({ attended: false, latest: null });
+    } finally {
+      setDomainStatusLoading(false);
+    }
+  };
+
+
+
+
+  // Start Assessment from Modal
+  const handleStartQuizFromModal = () => {
+    setStartModalDomain(null);
+    handleStartQuiz();
+  };
+
   // Start Assessment
   const handleStartQuiz = () => {
     setUserAnswers({});
@@ -220,15 +274,16 @@ export default function InterviewPreparation({ onAskMentor, onNavigateHome, user
   };
 
   // Explicit Submit by User
-  const handleSubmitAssessment = () => {
+  const handleSubmitAssessment = async () => {
     setShowSubmitModal(false);
-    setEndTime(Date.now());
+    const end = Date.now();
+    setEndTime(end);
     setViewState('result');
-    calculateAndSaveResults(userAnswers, false);
+    await calculateAndSaveResults(userAnswers, false, end);
   };
 
   // Calculate and store results
-  const calculateAndSaveResults = (answers, wasTimeout = false) => {
+  const calculateAndSaveResults = async (answers, wasTimeout = false, explicitEndTime = null) => {
     let correctCount = 0;
     activeQuestions.forEach((q) => {
       if (answers[q.id] === q.correctIndex) {
@@ -237,7 +292,8 @@ export default function InterviewPreparation({ onAskMentor, onNavigateHome, user
     });
 
     const accuracy = Math.round((correctCount / activeQuestions.length) * 100);
-    const timeSpentSeconds = Math.max(1, Math.round(((endTime || Date.now()) - (startTime || Date.now())) / 1000));
+    const resolvedEnd = explicitEndTime || endTime || Date.now();
+    const timeSpentSeconds = Math.max(1, Math.round((resolvedEnd - (startTime || resolvedEnd)) / 1000));
     
     // XP Calculation: Base + (Correct * 10) + Level Multiplier + Speed Bonus
     const levelMultiplier = selectedLevelId === 'advance' ? 1.5 : selectedLevelId === 'intermediate' ? 1.2 : 1.0;
@@ -255,11 +311,66 @@ export default function InterviewPreparation({ onAskMentor, onNavigateHome, user
       setShowCelebration(true);
     }
 
+    // Performance Tier & Grade
+    let tier = 'Foundational';
+    let grade = 'C';
+    if (correctCount === 10) {
+      tier = 'Legendary Master';
+      grade = 'S';
+    } else if (correctCount >= 8) {
+      tier = 'Interview Ready';
+      grade = 'A';
+    } else if (correctCount >= 6) {
+      tier = 'Competent';
+      grade = 'B';
+    }
+
+    const certId = `SK-${selectedDomainId.toUpperCase().slice(0, 3)}-${Math.floor(100000 + Math.random() * 900000)}`;
+    const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+    let activeEmail = user?.email || (typeof user === 'string' && user.includes('@') ? user : null);
+    if (!activeEmail) {
+      try {
+        const storedUser = localStorage.getItem('skillonik_user') || sessionStorage.getItem('skillonik_user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          activeEmail = parsed.email || parsed.user_email || null;
+        }
+      } catch {}
+    }
+
+    const activeName = user?.name || (activeEmail ? activeEmail.split('@')[0] : 'Candidate');
+
+    const assessmentResultObj = {
+      domain: selectedDomainId,
+      domainName: activeDomain.name,
+      level: selectedLevelId,
+      score: correctCount,
+      totalQuestions: activeQuestions.length,
+      accuracy: accuracy,
+      durationSeconds: timeSpentSeconds,
+      answers: answers,
+      user_email: activeEmail || 'guest@skillonik.internal',
+      user_name: activeName,
+      completedAt: dateStr
+    };
+
+    setLastCompletedResult(assessmentResultObj);
+
+    // Save directly to MongoDB interview_preparation collection
+    try {
+      const res = await saveInterviewAssessment(assessmentResultObj, activeEmail);
+      console.log('✅ Assessment successfully saved to MongoDB (interview_preparation):', res);
+    } catch (err) {
+      console.warn('Backend interview assessment save notice:', err.message);
+    }
+
     // Award badges
     const newUnlockedBadges = [...stats.unlockedBadges];
     if (correctCount === 10 && !newUnlockedBadges.includes('perfect_ace')) {
       newUnlockedBadges.push('perfect_ace');
     }
+
     if (timeSpentSeconds <= 180 && accuracy >= 80 && !newUnlockedBadges.includes('speed_demon')) {
       newUnlockedBadges.push('speed_demon');
     }
@@ -286,7 +397,10 @@ export default function InterviewPreparation({ onAskMentor, onNavigateHome, user
             bestScore: Math.max(prevDomainStats.bestScore, correctCount),
             attempts: prevDomainStats.attempts + 1,
             lastScore: correctCount,
-            lastLevel: selectedLevelId
+            lastLevel: selectedLevelId,
+            lastDate: dateStr,
+            durationSeconds: timeSpentSeconds,
+            certificateId: certId
           }
         }
       };
@@ -400,8 +514,8 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
               Technical Interview <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Preparation</span>
             </h1>
             <p className="text-slate-600 text-sm md:text-base max-w-3xl leading-relaxed">
-              Master technical interview rounds across 10 specialized software engineering domains. 
-              Practice 10 high-yield multiple choice questions with realistic time limits, instant analytics, reward badges, and AI mentor deep-dives.
+              Master technical interview rounds specialized software engineering domains. 
+              Practice multiple choice questions with realistic time limits, instant analytics, reward badges, and AI mentor deep-dives.
             </p>
           </div>
 
@@ -438,9 +552,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
                       }`}>
                         {lvl.label}
                       </span>
-                      <span className={`text-xs font-mono font-semibold ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
-                        +{lvl.targetXP} XP
-                      </span>
+                     
                     </div>
                     <h3 className={`font-display font-bold text-lg ${isSelected ? 'text-white' : 'text-slate-900'}`}>
                       {lvl.label} Round
@@ -451,7 +563,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
                   </div>
 
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/20 text-xs font-mono">
-                    <span className={isSelected ? 'text-blue-100' : 'text-slate-400'}>10 Questions</span>
+                    
                     <span className="font-bold">Standard 10 Mins</span>
                   </div>
                 </button>
@@ -486,17 +598,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
-                <input 
-                  type="checkbox"
-                  checked={practiceMode}
-                  onChange={(e) => setPracticeMode(e.target.checked)}
-                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                />
-                <span>Practice Mode (Instant Feedback)</span>
-              </label>
-            </div>
+            
           </div>
         </div>
 
@@ -505,9 +607,9 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-900 font-display font-bold text-lg">
               <Brain className="w-5 h-5 text-blue-600" />
-              <h2>Step 2: Select Technical Domain (10 Domains)</h2>
+              <h2>Step 2: Select Technical Domain </h2>
             </div>
-            <span className="text-xs font-mono text-slate-500">10 MCQ Questions per Category</span>
+            
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -518,7 +620,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
               return (
                 <div
                   key={dom.id}
-                  onClick={() => setSelectedDomainId(dom.id)}
+                  onClick={() => handleOpenDomainModal(dom)}
                   className={`
                     p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden
                     ${isSelected
@@ -548,9 +650,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
                         <h3 className="font-display font-bold text-base text-slate-900 group-hover:text-blue-600 transition-colors">
                           {dom.name}
                         </h3>
-                        <p className="text-[10px] font-mono text-slate-400">
-                          {history ? `Best: ${history.bestScore}/10` : '10 Questions'}
-                        </p>
+                      
                       </div>
                     </div>
 
@@ -572,9 +672,16 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
                     <span className="text-[10px] font-mono font-bold text-blue-600">
                       {selectedLevelId.toUpperCase()}
                     </span>
-                    <div className={`p-1.5 rounded-xl transition-all ${
-                      isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600'
-                    }`}>
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDomainModal(dom);
+                      }}
+                      className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600'
+                      }`}
+                      title={`Launch ${dom.name} Assessment`}
+                    >
                       <ChevronRight className="w-4 h-4" />
                     </div>
                   </div>
@@ -584,59 +691,147 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
           </div>
         </div>
 
-        {/* Bottom CTA Launcher Card */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-700/60">
-          <div className="space-y-2 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-mono font-bold border border-blue-400/30">
-              <span>Ready for Launch</span>
-            </div>
-            <h3 className="font-display text-2xl font-bold">
-              {activeDomain.name} ({activeLevel.label} Assessment)
-            </h3>
-            <p className="text-slate-300 text-xs md:text-sm max-w-xl leading-relaxed">
-              You will face 10 multiple choice questions calibrated for {activeLevel.label} interview difficulty. 
-              {timerPreset > 0 ? ` Timer is set to ${timerPreset / 60} minutes.` : ' Untimed Practice Mode.'} Complete the test to earn badges and XP.
-            </p>
-          </div>
+        {/* Assessment Launch / Already Attended Modal */}
+        {startModalDomain && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-100 space-y-6 animate-in zoom-in-95 relative">
+              
+              {/* Close Button */}
+              <button
+                onClick={() => setStartModalDomain(null)}
+                className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-          <button
-            onClick={handleStartQuiz}
-            className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600 text-white font-display font-bold text-sm shadow-xl shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-3 shrink-0"
-          >
-            <Play className="w-5 h-5 fill-white" />
-            <span>Start 10-Question Assessment</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Unlocked Badges Showcase */}
-        {stats.unlockedBadges.length > 0 && (
-          <div className="glass-card rounded-3xl p-6 border border-white/80 space-y-4">
-            <div className="flex items-center gap-2 text-slate-900 font-display font-bold text-base">
-              <Award className="w-5 h-5 text-amber-500" />
-              <h3>Your Earned Achievement Badges</h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              {BADGE_REWARDS.map((b) => {
-                const isUnlocked = stats.unlockedBadges.includes(b.id);
-                return (
-                  <div 
-                    key={b.id}
-                    className={`p-4 rounded-2xl border transition-all ${
-                      isUnlocked 
-                        ? 'bg-amber-50/80 border-amber-300/80 shadow-xs' 
-                        : 'bg-slate-50/50 border-slate-200/60 opacity-40 grayscale'
-                    }`}
-                  >
-                    <p className="font-display font-bold text-sm text-slate-900">{b.title}</p>
-                    <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{b.condition}</p>
-                    <span className="inline-block mt-2 text-[10px] font-mono font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-full">
-                      +{b.xpBonus} XP
+              {/* Modal Header */}
+              <div className="flex items-center gap-3.5 pr-8">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 shrink-0">
+                  <DomainIcon name={startModalDomain.icon} className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-display font-bold text-xl text-slate-900">
+                      {startModalDomain.name} Assessment
+                    </span>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase ${activeLevel.badgeColor}`}>
+                      {activeLevel.label}
                     </span>
                   </div>
-                );
-              })}
+                  <p className="text-xs text-slate-500 font-mono mt-0.5">
+                    10 MCQs • Standard 10 Mins • Technical Placement Evaluation
+                  </p>
+                </div>
+              </div>
+
+              {domainStatusLoading ? (
+                <div className="py-8 flex flex-col items-center justify-center gap-3 text-slate-500">
+                  <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs font-mono">Checking exam records with backend database...</p>
+                </div>
+              ) : attendedExamData?.attended && attendedExamData?.latest ? (
+                /* Case: Already Attended Exam */
+                <div className="space-y-4">
+                  {/* Status Banner */}
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/90 text-amber-900 flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-display font-bold text-sm text-amber-950">
+                        You have already attended this exam!
+                      </h4>
+                      <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                        We retrieved your previous evaluation record from the backend. You can take a fresh reassignment to improve your score.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Previous Result Score Card */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-2.5">
+                      <span className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">
+                        Previous Attempt Details
+                      </span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                        {attendedExamData.latest.completedAt || 'Completed'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2.5 rounded-xl bg-white border border-slate-100 shadow-2xs">
+                        <span className="text-[10px] font-mono text-slate-400 block uppercase">Old Mark</span>
+                        <span className="text-base font-display font-extrabold text-slate-900 mt-0.5 block">
+                          {attendedExamData.latest.score} / {attendedExamData.latest.totalQuestions || 10}
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white border border-slate-100 shadow-2xs">
+                        <span className="text-[10px] font-mono text-slate-400 block uppercase">Accuracy</span>
+                        <span className="text-base font-display font-extrabold text-emerald-600 mt-0.5 block">
+                          {attendedExamData.latest.accuracy}%
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white border border-slate-100 shadow-2xs">
+                        <span className="text-[10px] font-mono text-slate-400 block uppercase">Time Duration</span>
+                        <span className="text-base font-display font-extrabold text-indigo-600 mt-0.5 block truncate">
+                          {attendedExamData.latest.durationSeconds 
+                            ? formatTime(attendedExamData.latest.durationSeconds)
+                            : (attendedExamData.latest.duration || '04:15')
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions for Attended Exam */}
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      onClick={() => setStartModalDomain(null)}
+                      className="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      onClick={handleStartQuizFromModal}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Take Reassignment</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Case: Fresh Assessment Launch */
+                <div className="space-y-5">
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    You are about to start the <b>{startModalDomain.name}</b> technical assessment. This round contains 10 high-yield multiple choice questions calibrated for <b>{activeLevel.label}</b> placement standards.
+                  </p>
+
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-mono text-slate-600">
+                    <span>⏱️ Duration: <b className="text-slate-900">{timerPreset > 0 ? `${timerPreset / 60} Minutes` : 'Untimed'}</b></span>
+                    <span>🎯 Total Marks: <b className="text-slate-900">10 Marks</b></span>
+                  </div>
+
+                  {/* Actions for Fresh Exam */}
+                  <div className="flex items-center justify-end gap-3 pt-3">
+                    <button
+                      onClick={() => setStartModalDomain(null)}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleStartQuizFromModal}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition-all cursor-pointer flex items-center gap-2 hover:scale-105 active:scale-95"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-white" />
+                      <span>Start Assignment</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
@@ -1114,21 +1309,16 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-purple-400/20 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Trophy / Grade Badge Icon */}
+          {/* Domain Icon Banner */}
           <div className="flex justify-center">
-            <div className="relative">
-              <div className={`w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl ${
-                isPerfectScore 
-                  ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-500 text-white animate-bounce' 
-                  : isGoodScore 
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white' 
-                    : 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white'
-              }`}>
-                {isPerfectScore ? <Trophy className="w-12 h-12" /> : <Award className="w-12 h-12" />}
-              </div>
-              <span className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-white text-slate-900 font-display font-extrabold text-sm flex items-center justify-center shadow-md border border-slate-100">
-                {scoreResult.grade}
-              </span>
+            <div className={`w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl ${
+              isPerfectScore 
+                ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-500 text-white animate-bounce shadow-amber-500/25' 
+                : isGoodScore 
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-emerald-500/25' 
+                  : 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/25'
+            }`}>
+              <DomainIcon name={activeDomain.icon} className="w-12 h-12" />
             </div>
           </div>
 
@@ -1136,7 +1326,7 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
             {showCelebration && (
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-mono text-xs font-bold shadow-xs animate-bounce">
                 <Sparkles className="w-4 h-4 text-amber-600" />
-                <span>🎉 High-Score Achievement Unlocked! +Bonus XP</span>
+                <span>🎉 High-Score Achievement Unlocked!</span>
               </div>
             )}
             <div>
@@ -1152,8 +1342,8 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
             </p>
           </div>
 
-          {/* Key Metrics 4-Box Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto pt-4">
+          {/* Key Metrics 3-Box Summary (Total Marks, Accuracy, Time Taken) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto pt-4">
             <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100">
               <p className="text-[10px] font-mono font-bold uppercase text-slate-400">Total Marks</p>
               <p className="text-xl font-display font-extrabold text-slate-900 mt-0.5">
@@ -1174,15 +1364,9 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
                 {formatTime(scoreResult.durationSeconds)}
               </p>
             </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100">
-              <p className="text-[10px] font-mono font-bold uppercase text-slate-400">XP Gained</p>
-              <p className="text-xl font-display font-extrabold text-amber-600 mt-0.5">
-                +{scoreResult.correct * 15} XP
-              </p>
-            </div>
           </div>
 
+          {/* Action CTA Buttons */}
           {/* Action CTA Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
             <button
@@ -1218,7 +1402,6 @@ Can you give me a deeper technical explanation, common interviewer follow-ups, a
       </div>
     );
   }
-
   // =========================================================================
   // VIEW 4: DETAILED QUESTION-BY-QUESTION REVIEW & EXPLANATION MODE
   // =========================================================================

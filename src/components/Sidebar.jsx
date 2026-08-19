@@ -25,7 +25,7 @@ export default function Sidebar({
   const navItems = [
     { id: 'chat', label: 'AI Mentor Assistant', icon: MessageSquare },
     { id: 'interview_prep', label: 'Interview Preparation', icon: Award, },
-    { id: 'roadmaps', label: 'Learning Roadmaps', icon: Map },
+
     { id: 'projects', label: 'Project Blueprints', icon: Lightbulb },
     { id: 'saved', label: 'Saved Sessions', icon: Bookmark },
   ];
@@ -62,31 +62,31 @@ export default function Sidebar({
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}
     >
-      {/* Brand Header */}
-      <div className="flex items-center gap-3 p-5 border-b border-white/40">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 border border-white/40 overflow-hidden">
-          <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+      {/* Brand Header with Top-Left Home Arrow */}
+      <div className="flex items-center gap-2.5 p-4 border-b border-white/40">
+        <button
+          onClick={() => handleNavClick('home-landing')}
+          className="p-1.5 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer border border-slate-200/60 shadow-2xs hover:scale-105 active:scale-95 shrink-0"
+          title="Back to Home Page"
+          aria-label="Back to Home Page"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 border border-white/40 overflow-hidden shrink-0">
+          <img src={logo} alt="Logo" className="w-6 h-6 object-contain" />
         </div>
-        <div>
-          <h1 className="font-display text-xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        <div className="min-w-0">
+          <h1 className="font-display text-lg font-bold tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent truncate leading-none">
             SKILLONIK
           </h1>
-          <p className="font-mono text-[10px] text-blue-600 font-semibold tracking-wider uppercase">
+          <p className="font-mono text-[9px] text-blue-600 font-semibold tracking-wider uppercase mt-0.5">
              AI Mentor
           </p>
         </div>
       </div>
 
-      {/* Back to Home & New Chat Buttons */}
-      <div className="px-4 pt-4 pb-2 space-y-2">
-        <button
-          onClick={() => handleNavClick('home-landing')}
-          className="w-full flex items-center gap-2 py-2 px-3 rounded-xl bg-white/80 hover:bg-white text-slate-700 font-medium text-xs border border-white/90 shadow-sm transition-all cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
-          <span>Home Page</span>
-        </button>
-
+      {/* New Chat Button */}
+      <div className="px-3 pt-3 pb-1">
         <button
           onClick={() => handleNavClick('new-chat')}
           className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-xs shadow-md shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
@@ -149,7 +149,7 @@ export default function Sidebar({
             <button
               onClick={handleLogoutClick}
               className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
-              title="Sign Out"
+              title="Log Out"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>

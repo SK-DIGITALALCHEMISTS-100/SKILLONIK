@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from "./components/Navbar.jsx";
 import Hero from "./components/Hero.jsx";
-import HomeRoadmapsSection from "./components/HomeRoadmapsSection.jsx";
 import ProblemSection from "./components/ProblemSection.jsx";
 import SimplePage from "./components/SimplePage.jsx";
 import Footer from "./components/Footer.jsx";
@@ -446,30 +445,13 @@ export default function App() {
               <Hero 
                 onLogin={() => setPage("Login")}
                 onExplore={() => setPage("Login")}
-                onExploreRoadmaps={() => {
-                  const el = document.getElementById('home-roadmaps-section');
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth' });
-                  } else {
-                    setPage("Roadmaps");
-                  }
-                }}
+                onExploreRoadmaps={() => setPage("Roadmaps")}
                 onNavigate={handleNavigate}
                 onLaunchMentor={() => {
                   setPage("AI Mentor");
                   setCurrentView("chat");
                 }}
                 onBrowseProjects={() => setPage("Projects")}
-              />
-              <HomeRoadmapsSection 
-                onSelectDomain={(domainId) => {
-                  setPage("Roadmaps");
-                }}
-                onSelectPrompt={(prompt) => {
-                  setPage("AI Mentor");
-                  setCurrentView("chat");
-                  handleSendMessage({ text: prompt });
-                }}
               />
               <ProblemSection />
             </>

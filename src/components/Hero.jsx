@@ -71,25 +71,8 @@ export default function Hero({
             <ArrowRight className="w-4 h-4 ml-1" />
           </button>
 
-          <button 
-            className="btn-secondary"
-            onClick={handleRoadmapsClick}
-          >
-            <Layers className="w-4 h-4" />
-            <span>Explore Roadmaps</span>
-          </button>
-
           
-
-          {onBrowseProjects && (
-            <button 
-              className="btn-secondary"
-              onClick={handleProjectsClick}
-            >
-              <Lightbulb className="w-4 h-4" />
-              <span>Project Blueprints</span>
-            </button>
-          )}
+       
         </div>
 
         {/* Interactive Live Demo Preview Showcase */}
